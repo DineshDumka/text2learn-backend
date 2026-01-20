@@ -8,10 +8,151 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model RefreshToken {
+  id          String   @id @default(uuid())
+  hashedToken String   @unique
+  userId      String
+  revoked     Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
 
 model User {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  password      String
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  courses       Course[]
+  progress      Progress[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model Course {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  difficulty  Difficulty   @default(BEGINNER)
+  language    Language     @default(ENGLISH)
+  status      CourseStatus @default(DRAFT)
+  creatorId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  creator     User         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  modules     Module[]
+
+  @@index([creatorId])
+  @@index([status])
+  @@map("courses")
+}
+
+model Module {
   id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
+  title     String
+  order     Int
+  courseId  String
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lessons   Lesson[]
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("modules")
+}
+
+model Lesson {
+  id        String     @id @default(uuid())
+  title     String
+  content   String
+  order     Int
+  videoUrl  String?
+  audioUrl  String?
+  moduleId  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  module    Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  progress  Progress[]
+  quizzes   Quiz?
+
+  @@index([moduleId])
+  @@map("lessons")
+}
+
+model Quiz {
+  id        String     @id @default(uuid())
+  type      QuizType   @default(MCQ)
+  lessonId  String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  questions Question[]
+  lesson    Lesson     @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@map("quizzes")
+}
+
+model Question {
+  id        String   @id @default(uuid())
+  text      String
+  options   Json
+  answer    String
+  quizId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId])
+  @@map("questions")
+}
+
+model Progress {
+  id        String   @id @default(uuid())
+  userId    String
+  lessonId  String
+  completed Boolean  @default(false)
+  score     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@map("progress")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Language {
+  ENGLISH
+  HINGLISH
+}
+
+enum CourseStatus {
+  DRAFT
+  GENERATING
+  PUBLISHED
+  FAILED
+}
+
+enum QuizType {
+  MCQ
+  TRUE_FALSE
 }
