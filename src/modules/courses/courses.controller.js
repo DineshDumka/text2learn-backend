@@ -1,5 +1,5 @@
 const courseService = require("./courses.service");
-const prisma = require("../../config/prisma"); 
+const prisma = require("../../config/prisma");
 
 const createCourse = async (req, res) => {
   try {
@@ -56,4 +56,36 @@ const getCourseById = async (req, res) => {
     res.status(400).json({ status: "fail", message: error.message });
   }
 };
-module.exports = { createCourse, getCourseById };
+
+const getQuizByLesson = async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+
+    const quiz = await prisma.quiz.findFirst({
+      where: { lessonId },
+      include: {
+        questions: {
+          select: {
+            id: true,
+            text: true,
+            options: true,
+            // 🛡️ SECURITY: We do NOT select the 'answer' field here.
+            // Users should not be able to see the answer in the API response!
+          },
+        },
+      },
+    });
+
+    if (!quiz) {
+      return res
+        .status(404)
+        .json({ status: "fail", message: "No quiz found for this lesson" });
+    }
+
+    res.status(200).json({ status: "success", data: { quiz } });
+  } catch (error) {
+    res.status(400).json({ status: "fail", message: error.message });
+  }
+};
+
+module.exports = { createCourse, getCourseById, getQuizByLesson };

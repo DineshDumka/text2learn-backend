@@ -61,4 +61,40 @@ IMPORTANT:
   }
 };
 
-module.exports = { generateCourseContent };
+/**
+ * Translates lesson content while preserving context and tone.
+ */
+const translateLesson = async (title, content, targetLang) => {
+  const prompt = `
+    You are a professional translator and educator.
+    Translate the following lesson from ENGLISH to ${targetLang}.
+    
+    ORIGINAL TITLE: ${title}
+    ORIGINAL CONTENT: ${content}
+    
+    STRICT RULES:
+    1. Return ONLY a valid JSON object.
+    2. Maintain the same educational level.
+    3. If target is HINGLISH, use a mix of Hindi and English as spoken by Indian tech mentors.
+    
+    JSON FORMAT:
+    {
+      "title": "Translated Title",
+      "content": "Translated Content"
+    }
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response
+      .text()
+      .replace(/```json|```/g, "")
+      .trim();
+    return JSON.parse(text);
+  } catch (error) {
+    console.error("Translation AI Error:", error);
+    throw error;
+  }
+};
+
+module.exports = { generateCourseContent, translateLesson };

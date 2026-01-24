@@ -27,48 +27,43 @@ const courseWorker = new Worker(
       console.log(`📦 AI Response:`, JSON.stringify(aiData, null, 2));
 
       // 💾 ATOMIC TRANSACTION: Saves all modules, lessons, and quizzes
-      await prisma.$transaction(
-        async (tx) => {
-          for (let i = 0; i < aiData.modules.length; i++) {
-            const mod = aiData.modules[i];
-
-            await tx.module.create({
-              data: {
-                title: mod.title,
-                order: i + 1,
-                courseId: courseId,
-                lessons: {
-                  create: mod.lessons.map((lesson, idx) => ({
-                    title: lesson.title,
-                    content: lesson.content,
-                    order: idx + 1,
-                    // 🎯 NEW: Create the quiz and its questions for this lesson
-                    quizzes: {
-                      create: {
-                        questions: {
-                          create: lesson.quiz.questions.map((q) => ({
-                            text: q.text,
-                            options: q.options,
-                            answer: q.answer,
-                          })),
-                        },
+      await prisma.$transaction(async (tx) => {
+        for (let i = 0; i < aiData.modules.length; i++) {
+          const mod = aiData.modules[i];
+          await tx.module.create({
+            data: {
+              title: mod.title,
+              order: i + 1,
+              courseId: courseId,
+              lessons: {
+                create: mod.lessons.map((lesson, idx) => ({
+                  order: idx + 1,
+                  // 🎯 NEW: Create localized content instead of raw fields
+                  contents: {
+                    create: {
+                      language: language || "ENGLISH", // Use the language from the job data
+                      title: lesson.title,
+                      content: lesson.content,
+                    },
+                  },
+                  quizzes: {
+                    create: {
+                      questions: {
+                        create: lesson.quiz.questions.map((q) => ({
+                          text: q.text,
+                          options: q.options,
+                          answer: q.answer,
+                        })),
                       },
                     },
-                  })),
-                },
+                  },
+                })),
               },
-            });
-          }
-
-          await tx.course.update({
-            where: { id: courseId },
-            data: { status: "PUBLISHED" },
+            },
           });
-        },
-        {
-          timeout: 30000, // AI data can be large, so we give the DB time to breathe
-        },
-      );
+        }
+        // ... update status to PUBLISHED
+      });
 
       console.log(`✅ SUCCESS! Course ${courseId} is now LIVE in Postgres.`);
     } catch (error) {
