@@ -10,20 +10,30 @@ const submitQuiz = async (req, res) => {
 
     // 🛡️ REPLAY PROTECTION
     // Check if user already has a high score for this lesson
-    const existingProgress = await prisma.progress.findFirst({
-      where: {
-        userId,
-        lesson: { quizzes: { id: quizId } },
-        score: { not: null },
-      },
-    });
+   // First, get the lessonId from the quiz
+const quiz = await prisma.quiz.findUnique({
+  where: { id: quizId },
+  select: { lessonId: true },
+});
 
-    if (existingProgress && existingProgress.score >= 80) {
-      return res.status(400).json({
-        status: "fail",
-        message: "You have already passed this quiz with a high score.",
-      });
-    }
+if (!quiz) {
+  return res.status(404).json({ status: "fail", message: "Quiz not found" });
+}
+
+const existingProgress = await prisma.progress.findFirst({
+  where: {
+    userId,
+    lessonId: quiz.lessonId,
+    score: { not: null },
+  },
+});
+ if (existingProgress && existingProgress.score >= 80) {
+  return res.status(400).json({
+    status: "fail",
+    message: "You have already passed this quiz with a high score.",
+  });
+}
+
 
     const result = await progressService.evaluateQuiz(userId, quizId, answers);
 

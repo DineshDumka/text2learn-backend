@@ -1,3 +1,4 @@
+const prisma = require("../../config/prisma");
 const getLesson = async (lessonId, requestedLang = "ENGLISH") => {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },

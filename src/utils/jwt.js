@@ -1,17 +1,17 @@
 const jwt = require("jsonwebtoken");
 
-const ACCESS_SECRET = process.env.ACCESS_TOKEN_SECRET;
-const REFRESH_SECRET = process.env.REFRESH_TOKEN_SECRET;
+const getAccessSecret = () => process.env.ACCESS_TOKEN_SECRET;
+const getRefreshSecret = () => process.env.REFRESH_TOKEN_SECRET;
 
 const signAccessToken = (payload) => {
   // payload is usually { id: user.id, role: user.role }
-  return jwt.sign(payload, ACCESS_SECRET, {
+  return jwt.sign(payload, getAccessSecret(), {
     expiresIn: "15m", // Access tokens must be short-lived
   });
 };
 
 const signRefreshToken = (payload) => {
-  return jwt.sign(payload, REFRESH_SECRET, {
+  return jwt.sign(payload, getRefreshSecret(), {
     expiresIn: "7d", // Refresh tokens are long-lived
   });
 };
@@ -28,6 +28,6 @@ module.exports = {
   signAccessToken,
   signRefreshToken,
   verifyToken,
-  ACCESS_SECRET,
-  REFRESH_SECRET,
+  getRefreshSecret,
+  getAccessSecret,
 };

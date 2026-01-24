@@ -1,6 +1,27 @@
 const courseService = require("./courses.service");
 const prisma = require("../../config/prisma");
 
+const ApiResponse = require("../../utils/ApiResponse");
+
+/**
+ * Specialized endpoint for Frontend Polling
+ */
+const getCourseStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id; // From auth middleware
+
+    const statusData = await courseService.getCourseStatusOnly(id, userId);
+
+    res.status(200).json(ApiResponse.success(statusData));
+  } catch (error) {
+    const statusCode = error.message === "NOT_FOUND" ? 404 : 403;
+    res
+      .status(statusCode)
+      .json(ApiResponse.error(error.message, "STATUS_CHECK_FAILED"));
+  }
+};
+
 const createCourse = async (req, res) => {
   try {
     // Debug line
@@ -50,6 +71,7 @@ const getCourseById = async (req, res) => {
         .status(404)
         .json({ status: "fail", message: "Course not found" });
     }
+    
 
     res.status(200).json({ status: "success", data: { course } });
   } catch (error) {
@@ -88,8 +110,6 @@ const getQuizByLesson = async (req, res) => {
   }
 };
 
-
-
 const searchAndListCourses = async (req, res) => {
   try {
     const { q, difficulty, language, limit = 10, cursor } = req.query;
@@ -121,4 +141,5 @@ module.exports = {
   getCourseById,
   getQuizByLesson,
   searchAndListCourses,
+  getCourseStatus,
 };

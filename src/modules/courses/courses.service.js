@@ -43,8 +43,8 @@ const createCourse = async (courseData, userId) => {
   return course;
 };
 
-const searchCourses = async (query, filters, limit = 10, cursor = null) => {
-  const { difficulty, language } = filters;
+const searchCourses = async ({ query, difficulty, language, limit = 10, cursor = null }) => {
+
   const take = Number(limit); // Ensure it's a number
 
   const where = {
@@ -90,4 +90,36 @@ const searchCourses = async (query, filters, limit = 10, cursor = null) => {
   return { courses, nextCursor };
 };
 
-module.exports = { createCourse, searchCourses };
+const getCourseStatusOnly = async (courseId, userId) => {
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: {
+      status: true,
+      creatorId: true,
+    }, // Only fetch exactly what we need
+  });
+
+  if (!course) throw new Error("NOT_FOUND");
+
+  // Ownership Check
+  if (course.creatorId !== userId) throw new Error("UNAUTHORIZED");
+
+  return { status: course.status };
+};
+
+const deleteCourse = async (courseId, userId) => {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+
+  if (!course) throw new Error("Course not found");
+  if (course.creatorId !== userId)
+    throw new Error("Unauthorized to delete this course");
+
+  return await prisma.course.delete({ where: { id: courseId } });
+};
+
+module.exports = {
+  createCourse,
+  searchCourses,
+  getCourseStatusOnly,
+  deleteCourse,
+};
