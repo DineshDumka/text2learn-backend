@@ -1,44 +1,54 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Initialize the AI with your API Key
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+// Using gemma-3-27b because your quota shows 30 RPM / 14.4K RPD!
+const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-flash",
+  generationConfig: { responseMimeType: "application/json" },
+});
 
 const generateCourseContent = async (prompt, language, difficulty) => {
   const systemPrompt = `
-    You are an expert curriculum designer. Generate a structured course based on: "${prompt}"
-    
-    STRICT RULES:
-    1. Language: ${language}
-    2. Difficulty: ${difficulty}
-    3. You MUST return ONLY a valid JSON object. No markdown code blocks (no \`\`\`json).
-    4. Follow this JSON structure exactly:
-       {
-         "title": "Course Title",
-         "description": "Brief overview",
-         "modules": [
-           {
-             "title": "Module Title",
-             "lessons": [
-               { "title": "Lesson Title", "content": "Comprehensive educational content in Markdown" }
-             ]
-           }
-         ]
-       }
-  `;
+Generate a complete course in JSON format. 
+Return ONLY valid JSON, no markdown, no explanation.
+
+REQUIRED STRUCTURE:
+{
+  "title": "Course Title",
+  "modules": [
+    {
+      "title": "Module 1 Title",
+      "lessons": [
+        {
+          "title": "Lesson 1 Title",
+          "content": "Detailed lesson content explaining the topic..."
+        }
+      ]
+    }
+  ]
+}
+
+IMPORTANT:
+- Every lesson MUST be an object with "title" (string) and "content" (string)
+- "content" should be 2-3 paragraphs of educational text
+- Generate at least 3 modules with 3 lessons each
+`;
 
   try {
-    const result = await model.generateContent(systemPrompt);
-    const response = await result.response;
-    let text = response.text();
+    const result = await model.generateContent(
+      `${systemPrompt}\n\nTopic: ${prompt}`,
+    );
+    const text = result.response.text();
 
-    // Clean potential markdown formatting
-    text = text.replace(/```json|```/g, "").trim();
-
-    return JSON.parse(text); // Convert string to JS Object
+    // Safety check: if AI wraps JSON in backticks, remove them
+    const cleanJson = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleanJson);
   } catch (error) {
-    console.error("AI Generation Error:", error);
-    throw new Error("Failed to generate content from AI");
+    if (error.message.includes("429")) {
+      console.error("🛑 QUOTA EXCEEDED: Please wait 60 seconds.");
+    }
+    throw error;
   }
 };
 

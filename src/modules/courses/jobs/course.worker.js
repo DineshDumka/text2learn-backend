@@ -1,5 +1,6 @@
 const { Worker } = require("bullmq");
 const redisConnection = require("../../../config/redis");
+const prisma = require("../../../config/prisma");
 const { generateCourseContent } = require("../ai.service");
 
 const courseWorker = new Worker(
@@ -7,19 +8,49 @@ const courseWorker = new Worker(
   async (job) => {
     const { courseId, rawText, language, difficulty } = job.data;
 
-    console.log(`🚀 Starting real AI generation for: ${courseId}`);
+    try {
+      console.log(`🚀 AI is designing course: ${courseId}`);
+      const aiData = await generateCourseContent(rawText, language, difficulty);
+      console.log(`📦 AI Response:`, JSON.stringify(aiData, null, 2)); 
 
-    // 1. CALL THE AI
-    const aiContent = await generateCourseContent(
-      rawText,
-      language,
-      difficulty,
-    );
+      // 💾 ATOMIC TRANSACTION: Saves all modules and lessons
+      await prisma.$transaction(async (tx) => {
+        for (let i = 0; i < aiData.modules.length; i++) {
+          const mod = aiData.modules[i];
+          await tx.module.create({
+            data: {
+              title: mod.title,
+              order: i + 1,
+              courseId: courseId,
+              lessons: {
+                create: mod.lessons.map((lesson, idx) => ({
+                  title: lesson.title,
+                  content: lesson.content,
+                  order: idx + 1,
+                })),
+              },
+            },
+          });
+        }
 
-    // 2. LOG THE RESULT (Check your terminal!)
-    console.log("✨ AI Response Received:", JSON.stringify(aiContent, null, 2));
+        await tx.course.update({
+        where: { id: courseId },
+        data: { status: "PUBLISHED" },
+      });
+    }, {
+      timeout: 30000,  
+    });
 
-    // NEXT STEP: We will save 'aiContent' to the database here.
+
+      console.log(`✅ SUCCESS! Course ${courseId} is now LIVE in Postgres.`);
+    } catch (error) {
+      console.error(`❌ Worker Failed:`, error.message);
+      await prisma.course.update({
+        where: { id: courseId },
+        data: { status: "FAILED" },
+      });
+      throw error; // BullMQ will retry based on your 'backoff' settings
+    }
   },
   { connection: redisConnection },
 );

@@ -18,12 +18,25 @@ const createCourse = async (courseData, userId) => {
   });
 
   // 2. Put the job in the queue for the Worker to find
-  await courseQueue.add("COURSE_GENERATION", {
-    courseId: course.id,
-    rawText: rawText || title,
-    language,
-    difficulty,
-  });
+  // Inside src/modules/courses/courses.service.js
+
+  await courseQueue.add(
+    "COURSE_GENERATION",
+    {
+      courseId: course.id,
+      rawText: rawText || title,
+      language,
+      difficulty,
+    },
+    {
+      attempts: 3, // Try up to 3 times if the AI rate-limits you
+      backoff: {
+        type: "exponential",
+        delay: 60000, // Wait 1 minute before the first retry
+      },
+      removeOnComplete: true, // Clean up Redis memory once done
+    },
+  );
 
   return course;
 };

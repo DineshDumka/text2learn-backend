@@ -1,4 +1,5 @@
 const courseService = require("./courses.service");
+const prisma = require("../../config/prisma"); 
 
 const createCourse = async (req, res) => {
   try {
@@ -27,4 +28,32 @@ const createCourse = async (req, res) => {
   }
 };
 
-module.exports = { createCourse };
+const getCourseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // We use 'include' to fetch the modules and lessons too!
+    const course = await prisma.course.findUnique({
+      where: { id },
+      include: {
+        modules: {
+          include: {
+            lessons: true,
+          },
+          orderBy: { order: "asc" }, // Keep them in order
+        },
+      },
+    });
+
+    if (!course) {
+      return res
+        .status(404)
+        .json({ status: "fail", message: "Course not found" });
+    }
+
+    res.status(200).json({ status: "success", data: { course } });
+  } catch (error) {
+    res.status(400).json({ status: "fail", message: error.message });
+  }
+};
+module.exports = { createCourse, getCourseById };
