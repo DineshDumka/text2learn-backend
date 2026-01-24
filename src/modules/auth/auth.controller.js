@@ -93,7 +93,25 @@ const logout = async (req, res) => {
   }
 };
 
+const getMe = async (req, res) => {
+  try {
+    // The 'protect' middleware already verified the user and attached them to req.user
+    // So we just send that data back to the frontend
+    res.status(200).json({
+      status: "success",
+      data: {
+        user: req.user,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ status: "error", message: error.message });
+  }
+};
+
 module.exports = {
   register,
   login,
+  refresh,
+  logout,
+  getMe,
 };

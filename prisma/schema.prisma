@@ -41,6 +41,7 @@ model Course {
   id          String       @id @default(uuid())
   title       String
   description String?
+  rawText     String?      @db.Text // 👈 ADD THIS LINE
   difficulty  Difficulty   @default(BEGINNER)
   language    Language     @default(ENGLISH)
   status      CourseStatus @default(DRAFT)

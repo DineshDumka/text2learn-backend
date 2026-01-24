@@ -1,6 +1,5 @@
 const jwt = require("../../utils/jwt");
 const prisma = require("../../config/prisma");
-const token = require("./token.service.js");
 
 const generateAuthTokens = async (user) => {
   // 1. Generate the raw strings
@@ -25,7 +24,7 @@ const generateAuthTokens = async (user) => {
   });
 
   // 4. Return both strings so the Controller can send them to the user
-  return { accessTokenString, refreshTokenString };
+  return { accessToken: accessTokenString, refreshToken: refreshTokenString };
 };
 
 const verifyRefreshToken = async (tokenFromUser) => {

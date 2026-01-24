@@ -105,4 +105,4 @@ const logoutUser = async (refreshTokenString) => {
   });
 };
 
-module.exports = { registerUser, loginUser, logoutUser };
+module.exports = { registerUser, loginUser, logoutUser, refreshSession };
