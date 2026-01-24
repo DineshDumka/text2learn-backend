@@ -18,11 +18,20 @@ REQUIRED STRUCTURE:
   "title": "Course Title",
   "modules": [
     {
-      "title": "Module 1 Title",
+      "title": "Module Title",
       "lessons": [
         {
-          "title": "Lesson 1 Title",
-          "content": "Detailed lesson content explaining the topic..."
+          "title": "Lesson Title",
+          "content": "Detailed educational text...",
+          "quiz": {
+            "questions": [
+              {
+                "text": "Multiple choice question text?",
+                "options": ["Option A", "Option B", "Option C", "Option D"],
+                "answer": "Option B"
+              }
+            ]
+          }
         }
       ]
     }
@@ -30,9 +39,9 @@ REQUIRED STRUCTURE:
 }
 
 IMPORTANT:
-- Every lesson MUST be an object with "title" (string) and "content" (string)
-- "content" should be 2-3 paragraphs of educational text
-- Generate at least 3 modules with 3 lessons each
+- Every lesson MUST have a "quiz" object with exactly 3 questions.
+- Each question must have "text", "options" (array of 4), and "answer" (must match one of the options).
+- Generate at least 3 modules with 3 lessons each.
 `;
 
   try {
