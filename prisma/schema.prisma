@@ -28,6 +28,7 @@ model User {
   email         String         @unique
   password      String
   role          Role           @default(USER)
+  quota         UserQuota?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   courses       Course[]
@@ -53,6 +54,8 @@ model Course {
 
   @@index([creatorId])
   @@index([status])
+  @@index([difficulty]) 
+  @@index([language])
   @@map("courses")
 }
 
@@ -138,6 +141,19 @@ model LessonContent {
   content   String   @db.Text // Long educational text
 
   @@unique([lessonId, language]) //
+}
+model UserQuota {
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  plan          Plan     @default(FREE)
+  monthlyLimit  Int      @default(50000) // 50k tokens
+  used          Int      @default(0)
+  resetAt       DateTime @default(now())
+}
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
 }
 
 enum Language {

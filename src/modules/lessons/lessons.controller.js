@@ -1,4 +1,4 @@
-const lessonService = require("./lesson.service");
+const lessonService = require("./lessons.service");
 const translationQueue = require("../courses/jobs/translation.queue"); // Create this similarly to course.queue.js
 
 const getLessonData = async (req, res) => {
@@ -27,3 +27,5 @@ const getLessonData = async (req, res) => {
     res.status(400).json({ status: "fail", message: error.message });
   }
 };
+
+module.exports = { getLessonData };

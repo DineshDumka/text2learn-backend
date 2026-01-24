@@ -27,3 +27,4 @@ const getLesson = async (lessonId, requestedLang = "ENGLISH") => {
     language: content?.language,
   };
 };
+module.exports = { getLesson };

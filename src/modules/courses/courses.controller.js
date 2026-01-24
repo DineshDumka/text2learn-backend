@@ -88,4 +88,37 @@ const getQuizByLesson = async (req, res) => {
   }
 };
 
-module.exports = { createCourse, getCourseById, getQuizByLesson };
+
+
+const searchAndListCourses = async (req, res) => {
+  try {
+    const { q, difficulty, language, limit = 10, cursor } = req.query;
+
+    // Call the optimized service logic we designed
+    const { courses, nextCursor } = await courseService.searchCourses({
+      query: q,
+      difficulty,
+      language,
+      limit,
+      cursor,
+    });
+
+    res.status(200).json({
+      status: "success",
+      results: courses.length,
+      data: {
+        courses,
+        nextCursor, // The client sends this back to get the next page
+      },
+    });
+  } catch (error) {
+    res.status(400).json({ status: "fail", message: error.message });
+  }
+};
+
+module.exports = {
+  createCourse,
+  getCourseById,
+  getQuizByLesson,
+  searchAndListCourses,
+};

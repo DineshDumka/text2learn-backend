@@ -1,33 +1,27 @@
 const { Worker } = require("bullmq");
 const redisConnection = require("../../../config/redis");
-const prisma = require("../../../config/prisma");
+const prisma = require("../../../config/prisma"); // Only one import needed
 const { generateCourseContent } = require("../ai.service");
 
 const courseWorker = new Worker(
   "course-generation",
   async (job) => {
-    const { courseId, rawText, language, difficulty } = job.data;
-
-    // IDEMPOTENCY CHECK - Skip if already processed
-    const existingCourse = await prisma.course.findUnique({
-      where: { id: courseId },
-      include: { _count: { select: { modules: true } } },
-    });
-    if (
-      existingCourse?.status === "PUBLISHED" ||
-      existingCourse?._count.modules > 0
-    ) {
-      console.log(`⏩ Skipping job: Course ${courseId} is already generated.`);
-      return;
-    }
+    // 1. Extract everything we need from the job
+    const { courseId, userId, rawText, language, difficulty } = job.data;
 
     try {
-      console.log(`🚀 AI is designing course: ${courseId}`);
-      const aiData = await generateCourseContent(rawText, language, difficulty);
-      console.log(`📦 AI Response:`, JSON.stringify(aiData, null, 2));
+      console.log(`🚀 AI starting: ${courseId} for User: ${userId}`);
 
-      // 💾 ATOMIC TRANSACTION: Saves all modules, lessons, and quizzes
+      // 2. Call AI Service
+      const aiData = await generateCourseContent(rawText, language, difficulty);
+
+      // 3. Calculate actual cost (Pre-transaction for performance)
+      const totalText = JSON.stringify(aiData);
+      const actualTokens = Math.ceil(totalText.split(/\s+/).length * 1.3);
+
+      // 4. ATOMIC SAVE & RECONCILE
       await prisma.$transaction(async (tx) => {
+        // --- SAVE YOUR MODULES & LESSONS HERE ---
         for (let i = 0; i < aiData.modules.length; i++) {
           const mod = aiData.modules[i];
           await tx.module.create({
@@ -38,23 +32,11 @@ const courseWorker = new Worker(
               lessons: {
                 create: mod.lessons.map((lesson, idx) => ({
                   order: idx + 1,
-                  // 🎯 NEW: Create localized content instead of raw fields
                   contents: {
                     create: {
-                      language: language || "ENGLISH", // Use the language from the job data
+                      language: language || "ENGLISH",
                       title: lesson.title,
                       content: lesson.content,
-                    },
-                  },
-                  quizzes: {
-                    create: {
-                      questions: {
-                        create: lesson.quiz.questions.map((q) => ({
-                          text: q.text,
-                          options: q.options,
-                          answer: q.answer,
-                        })),
-                      },
                     },
                   },
                 })),
@@ -62,17 +44,49 @@ const courseWorker = new Worker(
             },
           });
         }
-        // ... update status to PUBLISHED
-      });
 
-      console.log(`✅ SUCCESS! Course ${courseId} is now LIVE in Postgres.`);
+        // --- RECONCILE QUOTA ---
+// Net adjustment: actualTokens - 2000 (reserved)
+// If actualTokens > 2000, this increments; if less, it decrements
+await tx.userQuota.update({
+  where: { userId },
+  data: {
+    used: {
+      increment: actualTokens - 2000,
+    },
+  },
+});
+
+
+        // --- MARK COMPLETE ---
+        await tx.course.update({
+          where: { id: courseId },
+          data: { status: "PUBLISHED" },
+        });
+      }, {
+    timeout: 30000, 
+  });
+
+      console.log(`✅ Success! Tokens used: ${actualTokens}`);
     } catch (error) {
-      console.error(`❌ Worker Failed:`, error.message);
+      console.error(`❌ Worker Error:`, error.message);
+
+      // REFUND ON FAILURE: Only if the error happened BEFORE the quota was reconciled
+      try {
+        await prisma.userQuota.update({
+          where: { userId },
+          data: { used: { decrement: 2000 } },
+        });
+      } catch (refundError) {
+        console.error("Critical: Could not refund quota", refundError.message);
+      }
+
       await prisma.course.update({
         where: { id: courseId },
         data: { status: "FAILED" },
       });
-      throw error; // BullMQ will retry based on your 'backoff' settings
+
+      throw error; // Let BullMQ handle retries
     }
   },
   { connection: redisConnection },
