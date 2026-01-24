@@ -1,4 +1,13 @@
+# Node
 node_modules/
 .env
 docs
-/src/generated/prisma
+
+# Backend specific
+backend/node_modules/
+
+
+# Frontend specific (when added)
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
