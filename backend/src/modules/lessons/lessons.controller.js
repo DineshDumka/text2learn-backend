@@ -1,5 +1,5 @@
 const lessonService = require("./lessons.service");
-const translationQueue = require("../courses/jobs/translation.queue");
+const translationQueue = require("../../queue/translation.queue");
 const asyncHandler = require("../../utils/asyncHandler");
 const ApiResponse = require("../../utils/ApiResponse");
 const logger = require("../../config/logger");

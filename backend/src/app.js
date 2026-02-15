@@ -3,7 +3,9 @@ const cookieParser = require("cookie-parser");
 
 const authRouter = require("./routes/auth.routes.js");
 require("./modules/courses/jobs/course.worker.js");
+require("./modules/courses/jobs/translation.worker.js");
 const courseRouter = require("./routes/course.routes.js");
+const exportRouter = require("./routes/export.routes.js");
 const progressRouter = require("./routes/progress.routes.js");
 const lessonRouter = require("./routes/lesson.routes.js");
 const userRouter = require("./routes/user.routes.js");
@@ -23,6 +25,7 @@ app.use("/api/v1/", globalLimiter);
 // --- Routes ---
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/courses", courseRouter);
+app.use("/api/v1/courses", exportRouter);
 app.use("/api/v1/progress", progressRouter);
 app.use("/api/v1/lessons", lessonRouter);
 app.use("/api/v1/users", userRouter);
@@ -36,3 +39,4 @@ app.use((req, res, next) => {
 app.use(errorHandler);
 
 module.exports = app;
+

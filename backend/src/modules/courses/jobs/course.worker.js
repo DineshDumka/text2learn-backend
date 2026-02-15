@@ -12,12 +12,29 @@ const courseWorker = new Worker(
   async (job) => {
     const { courseId, userId, rawText, language, difficulty } = job.data;
 
+    // ─── IDEMPOTENCY GUARD ──────────────────────────────────────────────
+    // If BullMQ retries a job that already succeeded, skip it.
+    const existing = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { status: true },
+    });
+
+    if (!existing) {
+      logger.warn({ courseId }, "Skipping: course record not found (deleted?)");
+      return;
+    }
+
+    if (existing.status === "PUBLISHED") {
+      logger.warn({ courseId }, "Skipping: course already published (retry-safe)");
+      return;
+    }
+
     // Difficulty-aware token budget (matches quota reservation)
     const reservedTokens = getTokenBudget(difficulty);
 
     try {
       logger.info(
-        { courseId, userId, difficulty, reservedTokens },
+        { courseId, userId, difficulty, reservedTokens, jobId: job.id },
         "AI course generation started",
       );
 
@@ -29,13 +46,17 @@ const courseWorker = new Worker(
         rawText,
       );
 
-      // 2. Resolve YouTube keywords → URLs BEFORE transaction (network calls outside tx)
-      const youtubeUrls = await batchResolveYouTube(aiData.modules);
-
       logger.info(
-        { courseId, resolvedVideos: youtubeUrls.size },
-        "YouTube URLs resolved",
+        {
+          courseId,
+          modules: aiData.modules.length,
+          totalLessons: aiData.modules.reduce((s, m) => s + m.lessons.length, 0),
+        },
+        "AI response validated, resolving YouTube URLs",
       );
+
+      // 2. Resolve YouTube keywords → URLs BEFORE transaction
+      const youtubeUrls = await batchResolveYouTube(aiData.modules);
 
       // 3. Calculate actual token cost
       const totalText = JSON.stringify(aiData);
@@ -44,7 +65,6 @@ const courseWorker = new Worker(
       // 4. ATOMIC SAVE & RECONCILE
       await prisma.$transaction(
         async (tx) => {
-          // Save modules & lessons with mixed content
           for (let i = 0; i < aiData.modules.length; i++) {
             const mod = aiData.modules[i];
             await tx.module.create({
@@ -60,7 +80,7 @@ const courseWorker = new Worker(
                       create: {
                         language: language || "ENGLISH",
                         title: lesson.title,
-                        content: lesson.theory, // theory → DB content field
+                        content: lesson.theory,
                         codeExample: lesson.codeExample || null,
                       },
                     },
@@ -70,10 +90,8 @@ const courseWorker = new Worker(
             });
           }
 
-          // Reconcile quota (adjust from estimate to actual)
           await reconcileQuota(tx, userId, actualTokens - reservedTokens);
 
-          // Mark course as published
           await tx.course.update({
             where: { id: courseId },
             data: { status: "PUBLISHED" },
@@ -82,17 +100,24 @@ const courseWorker = new Worker(
         { timeout: 30000 },
       );
 
-      logger.info({ courseId, actualTokens }, "Course generation completed");
+      logger.info(
+        { courseId, actualTokens, jobId: job.id },
+        "Course generation completed successfully",
+      );
     } catch (error) {
-      logger.error({ courseId, error: error.message }, "Worker error");
+      logger.error(
+        { courseId, jobId: job.id, error: error.message, stack: error.stack },
+        "Worker error — course generation failed",
+      );
 
       // Refund reserved tokens on failure
       try {
         await refundQuota(userId, reservedTokens);
+        logger.info({ userId, reservedTokens }, "Quota refunded after failure");
       } catch (refundError) {
         logger.error(
           { userId, error: refundError.message },
-          "Critical: could not refund quota",
+          "CRITICAL: could not refund quota",
         );
       }
 
