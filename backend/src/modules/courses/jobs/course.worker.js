@@ -3,20 +3,25 @@ const redisConnection = require("../../../config/redis");
 const prisma = require("../../../config/prisma");
 const { generateCourseContent } = require("../ai.service");
 const { reconcileQuota, refundQuota } = require("../quota.service");
+const { getTokenBudget } = require("../promptBuilder.service");
 const logger = require("../../../config/logger");
-
-const RESERVED_TOKENS = 2000;
 
 const courseWorker = new Worker(
   "course-generation",
   async (job) => {
     const { courseId, userId, rawText, language, difficulty } = job.data;
 
-    try {
-      logger.info({ courseId, userId }, "AI course generation started");
+    // Difficulty-aware token budget (matches quota reservation)
+    const reservedTokens = getTokenBudget(difficulty);
 
-      // 1. Call AI Service (includes Zod validation)
-      const aiData = await generateCourseContent(rawText, language, difficulty);
+    try {
+      logger.info(
+        { courseId, userId, difficulty, reservedTokens },
+        "AI course generation started",
+      );
+
+      // 1. Call AI Service via PromptBuilder (includes Zod validation)
+      const aiData = await generateCourseContent(rawText, language, difficulty, rawText);
 
       // 2. Calculate actual token cost
       const totalText = JSON.stringify(aiData);
@@ -50,7 +55,7 @@ const courseWorker = new Worker(
           }
 
           // Reconcile quota (adjust from estimate to actual)
-          await reconcileQuota(tx, userId, actualTokens - RESERVED_TOKENS);
+          await reconcileQuota(tx, userId, actualTokens - reservedTokens);
 
           // Mark course as published
           await tx.course.update({
@@ -67,7 +72,7 @@ const courseWorker = new Worker(
 
       // Refund reserved tokens on failure
       try {
-        await refundQuota(userId, RESERVED_TOKENS);
+        await refundQuota(userId, reservedTokens);
       } catch (refundError) {
         logger.error(
           { userId, error: refundError.message },

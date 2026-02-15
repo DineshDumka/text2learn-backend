@@ -1,13 +1,15 @@
 const prisma = require("../../config/prisma");
 const courseQueue = require("../../queue/course.queue");
 const { checkAndReserveQuota } = require("./quota.service");
+const { getTokenBudget } = require("./promptBuilder.service");
 const AppError = require("../../utils/AppError");
 
 const createCourse = async (courseData, userId) => {
   const { title, description, difficulty, language, rawText } = courseData;
 
-  // Atomic quota check before creating DB record or enqueuing
-  await checkAndReserveQuota(userId, 2000);
+  // Difficulty-aware quota reservation (not hardcoded anymore)
+  const tokenBudget = getTokenBudget(difficulty);
+  await checkAndReserveQuota(userId, tokenBudget);
 
   // Save the course shell in DB
   const course = await prisma.course.create({

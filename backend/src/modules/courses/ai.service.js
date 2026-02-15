@@ -4,6 +4,7 @@ const {
   validateCourseResponse,
   validateTranslationResponse,
 } = require("./ai.validator");
+const { buildCoursePrompt } = require("./promptBuilder.service");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -12,56 +13,56 @@ const model = genAI.getGenerativeModel({
   generationConfig: { responseMimeType: "application/json" },
 });
 
-const generateCourseContent = async (prompt, language, difficulty) => {
-  const systemPrompt = `
-Generate a complete course in JSON format. 
-Return ONLY valid JSON, no markdown, no explanation.
-
-REQUIRED STRUCTURE:
-{
-  "title": "Course Title",
-  "modules": [
-    {
-      "title": "Module Title",
-      "lessons": [
-        {
-          "title": "Lesson Title",
-          "content": "Detailed educational text...",
-          "quiz": {
-            "questions": [
-              {
-                "text": "Multiple choice question text?",
-                "options": ["Option A", "Option B", "Option C", "Option D"],
-                "answer": "Option B"
-              }
-            ]
-          }
-        }
-      ]
-    }
-  ]
-}
-
-IMPORTANT:
-- Every lesson MUST have a "quiz" object with exactly 3 questions.
-- Each question must have "text", "options" (array of 4), and "answer" (must match one of the options).
-- Generate at least 3 modules with 3 lessons each.
-`;
+/**
+ * Generate a full course using AI with difficulty-aware prompting.
+ *
+ * @param {string} topic - User's topic text
+ * @param {string} language - Target language (ENGLISH, HINDI, etc.)
+ * @param {string} difficulty - BEGINNER | INTERMEDIATE | ADVANCED
+ * @param {string} [rawText] - Optional raw notes from user
+ * @returns {Object} Validated course data
+ */
+const generateCourseContent = async (topic, language, difficulty, rawText) => {
+  // 1. Build a difficulty-aware prompt via PromptBuilder
+  const { systemPrompt, profile } = buildCoursePrompt({
+    topic,
+    difficulty,
+    language,
+    rawText,
+  });
 
   try {
+    logger.info(
+      {
+        difficulty,
+        expectedModules: profile.moduleCount,
+        expectedLessons: profile.lessonsPerModule,
+        tokenBudget: profile.tokenBudget,
+      },
+      "Calling AI with dynamic prompt",
+    );
+
+    // 2. Call Gemini
     const result = await model.generateContent(
-      `${systemPrompt}\n\nTopic: ${prompt}`,
+      `${systemPrompt}\n\nTopic: ${topic}`,
     );
     const text = result.response.text();
 
-    // Safety check: if AI wraps JSON in backticks, remove them
+    // 3. Clean + parse JSON
     const cleanJson = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(cleanJson);
 
-    // Schema validation before returning
+    // 4. Schema validation (Zod) before returning
     const validated = validateCourseResponse(parsed);
+
     logger.info(
-      { moduleCount: validated.modules.length },
+      {
+        moduleCount: validated.modules.length,
+        totalLessons: validated.modules.reduce(
+          (sum, m) => sum + m.lessons.length,
+          0,
+        ),
+      },
       "AI course response validated successfully",
     );
 

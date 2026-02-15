@@ -6,8 +6,9 @@ const { z } = require("zod");
  * instead of letting Prisma throw cryptic constraint errors.
  */
 
-// A single quiz question
-const questionSchema = z.object({
+// A single MCQ question
+const mcqQuestionSchema = z.object({
+  type: z.literal("MCQ").optional().default("MCQ"),
   text: z.string().min(1, "Question text is required"),
   options: z
     .array(z.string().min(1))
@@ -16,8 +17,27 @@ const questionSchema = z.object({
   answer: z.string().min(1, "Answer is required"),
 });
 
-// Quiz with questions
+// A single TRUE_FALSE question
+const trueFalseQuestionSchema = z.object({
+  type: z.literal("TRUE_FALSE"),
+  text: z.string().min(1, "Question text is required"),
+  options: z
+    .array(z.string())
+    .length(2, "TRUE_FALSE must have exactly 2 options"),
+  answer: z.enum(["True", "False"], {
+    errorMap: () => ({ message: 'Answer must be "True" or "False"' }),
+  }),
+});
+
+// A question can be either MCQ or TRUE_FALSE
+const questionSchema = z.union([trueFalseQuestionSchema, mcqQuestionSchema]);
+
+// Quiz with type and questions
 const quizSchema = z.object({
+  type: z
+    .enum(["MCQ", "TRUE_FALSE"])
+    .optional()
+    .default("MCQ"),
   questions: z
     .array(questionSchema)
     .min(1, "Quiz must have at least 1 question"),
@@ -62,7 +82,7 @@ const validateCourseResponse = (data) => {
     throw new Error(`AI_RESPONSE_INVALID: ${details}`);
   }
 
-  // Cross-check: each answer must be in options
+  // Cross-check: each MCQ answer must be in its options
   for (const mod of result.data.modules) {
     for (const lesson of mod.lessons) {
       for (const q of lesson.quiz.questions) {
