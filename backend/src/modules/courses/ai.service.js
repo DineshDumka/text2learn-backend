@@ -1,8 +1,12 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const logger = require("../../config/logger");
+const {
+  validateCourseResponse,
+  validateTranslationResponse,
+} = require("./ai.validator");
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Using gemma-3-27b because your quota shows 30 RPM / 14.4K RPD!
 const model = genAI.getGenerativeModel({
   model: "gemini-2.5-flash",
   generationConfig: { responseMimeType: "application/json" },
@@ -52,10 +56,21 @@ IMPORTANT:
 
     // Safety check: if AI wraps JSON in backticks, remove them
     const cleanJson = text.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleanJson);
+    const parsed = JSON.parse(cleanJson);
+
+    // Schema validation before returning
+    const validated = validateCourseResponse(parsed);
+    logger.info(
+      { moduleCount: validated.modules.length },
+      "AI course response validated successfully",
+    );
+
+    return validated;
   } catch (error) {
     if (error.message.includes("429")) {
-      console.error("🛑 QUOTA EXCEEDED: Please wait 60 seconds.");
+      logger.error("QUOTA EXCEEDED: Please wait 60 seconds.");
+    } else if (error.message.startsWith("AI_RESPONSE_INVALID")) {
+      logger.error({ error: error.message }, "AI returned invalid structure");
     }
     throw error;
   }
@@ -90,9 +105,15 @@ const translateLesson = async (title, content, targetLang) => {
       .text()
       .replace(/```json|```/g, "")
       .trim();
-    return JSON.parse(text);
+    const parsed = JSON.parse(text);
+
+    // Schema validation before returning
+    const validated = validateTranslationResponse(parsed);
+    logger.info({ targetLang }, "AI translation response validated successfully");
+
+    return validated;
   } catch (error) {
-    console.error("Translation AI Error:", error);
+    logger.error({ error: error.message, targetLang }, "Translation AI Error");
     throw error;
   }
 };

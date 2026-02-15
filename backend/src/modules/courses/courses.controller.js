@@ -1,140 +1,125 @@
 const courseService = require("./courses.service");
 const prisma = require("../../config/prisma");
-
+const asyncHandler = require("../../utils/asyncHandler");
+const AppError = require("../../utils/AppError");
 const ApiResponse = require("../../utils/ApiResponse");
 
 /**
- * Specialized endpoint for Frontend Polling
+ * POST /courses — Create a new AI-generated course
  */
-const getCourseStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id; // From auth middleware
-
-    const statusData = await courseService.getCourseStatusOnly(id, userId);
-
-    res.status(200).json(ApiResponse.success(statusData));
-  } catch (error) {
-    const statusCode = error.message === "NOT_FOUND" ? 404 : 403;
-    res
-      .status(statusCode)
-      .json(ApiResponse.error(error.message, "STATUS_CHECK_FAILED"));
+const createCourse = asyncHandler(async (req, res) => {
+  if (!req.body || Object.keys(req.body).length === 0) {
+    throw AppError.badRequest("Request body is empty", "EMPTY_BODY");
   }
-};
 
-const createCourse = async (req, res) => {
-  try {
-    // Debug line
-    console.log("Request Body:", req.body);
+  const course = await courseService.createCourse(req.body, req.user.id);
 
-    if (!req.body || Object.keys(req.body).length === 0) {
-      return res
-        .status(400)
-        .json({ status: "fail", message: "Request body is empty" });
-    }
+  res.status(201).json(
+    ApiResponse.success({
+      courseId: course.id,
+      status: course.status,
+    }),
+  );
+});
 
-    // req.user comes from 'protect' middleware
-    const course = await courseService.createCourse(req.body, req.user.id);
+/**
+ * GET /courses/:id — Get full course with modules & lessons
+ */
+const getCourseById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
 
-    res.status(201).json({
-      status: "success",
-      message: "Course generation started",
-      data: {
-        courseId: course.id,
-        status: course.status,
-      },
-    });
-  } catch (error) {
-    res.status(400).json({ status: "fail", message: error.message });
-  }
-};
-
-const getCourseById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    // We use 'include' to fetch the modules and lessons too!
-    const course = await prisma.course.findUnique({
-      where: { id },
-      include: {
-        modules: {
-          include: {
-            lessons: true,
-          },
-          orderBy: { order: "asc" }, // Keep them in order
+  const course = await prisma.course.findUnique({
+    where: { id },
+    include: {
+      modules: {
+        include: {
+          lessons: true,
         },
+        orderBy: { order: "asc" },
       },
-    });
+    },
+  });
 
-    if (!course) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "Course not found" });
-    }
-    
-
-    res.status(200).json({ status: "success", data: { course } });
-  } catch (error) {
-    res.status(400).json({ status: "fail", message: error.message });
+  if (!course) {
+    throw AppError.notFound("Course not found");
   }
-};
 
-const getQuizByLesson = async (req, res) => {
-  try {
-    const { lessonId } = req.params;
+  res.status(200).json(ApiResponse.success({ course }));
+});
 
-    const quiz = await prisma.quiz.findFirst({
-      where: { lessonId },
-      include: {
-        questions: {
-          select: {
-            id: true,
-            text: true,
-            options: true,
-            // 🛡️ SECURITY: We do NOT select the 'answer' field here.
-            // Users should not be able to see the answer in the API response!
-          },
-        },
-      },
-    });
+/**
+ * GET /courses/:id/status — Poll generation status (ownership enforced)
+ */
+const getCourseStatus = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
 
-    if (!quiz) {
-      return res
-        .status(404)
-        .json({ status: "fail", message: "No quiz found for this lesson" });
-    }
+  const statusData = await courseService.getCourseStatusOnly(id, userId);
 
-    res.status(200).json({ status: "success", data: { quiz } });
-  } catch (error) {
-    res.status(400).json({ status: "fail", message: error.message });
-  }
-};
+  res.status(200).json(ApiResponse.success(statusData));
+});
 
-const searchAndListCourses = async (req, res) => {
-  try {
-    const { q, difficulty, language, limit = 10, cursor } = req.query;
+/**
+ * GET /courses — Search and list published courses (public)
+ */
+const searchAndListCourses = asyncHandler(async (req, res) => {
+  const { q, difficulty, language, limit = 10, cursor } = req.query;
 
-    // Call the optimized service logic we designed
-    const { courses, nextCursor } = await courseService.searchCourses({
-      query: q,
-      difficulty,
-      language,
-      limit,
-      cursor,
-    });
+  const { courses, nextCursor } = await courseService.searchCourses({
+    query: q,
+    difficulty,
+    language,
+    limit,
+    cursor,
+  });
 
-    res.status(200).json({
-      status: "success",
+  res.status(200).json(
+    ApiResponse.success({
       results: courses.length,
-      data: {
-        courses,
-        nextCursor, // The client sends this back to get the next page
+      courses,
+      nextCursor,
+    }),
+  );
+});
+
+/**
+ * GET /courses/:courseId/lessons/:lessonId/quiz — Get quiz for a lesson (answers excluded)
+ */
+const getQuizByLesson = asyncHandler(async (req, res) => {
+  const { lessonId } = req.params;
+
+  const quiz = await prisma.quiz.findFirst({
+    where: { lessonId },
+    include: {
+      questions: {
+        select: {
+          id: true,
+          text: true,
+          options: true,
+          // SECURITY: answer excluded so users can't cheat
+        },
       },
-    });
-  } catch (error) {
-    res.status(400).json({ status: "fail", message: error.message });
+    },
+  });
+
+  if (!quiz) {
+    throw AppError.notFound("No quiz found for this lesson");
   }
-};
+
+  res.status(200).json(ApiResponse.success({ quiz }));
+});
+
+/**
+ * DELETE /courses/:id — Delete a course (ownership enforced in service)
+ */
+const deleteCourse = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  await courseService.deleteCourse(id, userId);
+
+  res.status(200).json(ApiResponse.success(null));
+});
 
 module.exports = {
   createCourse,
@@ -142,4 +127,5 @@ module.exports = {
   getQuizByLesson,
   searchAndListCourses,
   getCourseStatus,
+  deleteCourse,
 };

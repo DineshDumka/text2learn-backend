@@ -1,84 +1,78 @@
 const { Worker } = require("bullmq");
 const redisConnection = require("../../../config/redis");
-const prisma = require("../../../config/prisma"); // Only one import needed
+const prisma = require("../../../config/prisma");
 const { generateCourseContent } = require("../ai.service");
+const { reconcileQuota, refundQuota } = require("../quota.service");
+const logger = require("../../../config/logger");
+
+const RESERVED_TOKENS = 2000;
 
 const courseWorker = new Worker(
   "course-generation",
   async (job) => {
-    // 1. Extract everything we need from the job
     const { courseId, userId, rawText, language, difficulty } = job.data;
 
     try {
-      console.log(`🚀 AI starting: ${courseId} for User: ${userId}`);
+      logger.info({ courseId, userId }, "AI course generation started");
 
-      // 2. Call AI Service
+      // 1. Call AI Service (includes Zod validation)
       const aiData = await generateCourseContent(rawText, language, difficulty);
 
-      // 3. Calculate actual cost (Pre-transaction for performance)
+      // 2. Calculate actual token cost
       const totalText = JSON.stringify(aiData);
       const actualTokens = Math.ceil(totalText.split(/\s+/).length * 1.3);
 
-      // 4. ATOMIC SAVE & RECONCILE
-      await prisma.$transaction(async (tx) => {
-        // --- SAVE YOUR MODULES & LESSONS HERE ---
-        for (let i = 0; i < aiData.modules.length; i++) {
-          const mod = aiData.modules[i];
-          await tx.module.create({
-            data: {
-              title: mod.title,
-              order: i + 1,
-              courseId: courseId,
-              lessons: {
-                create: mod.lessons.map((lesson, idx) => ({
-                  order: idx + 1,
-                  contents: {
-                    create: {
-                      language: language || "ENGLISH",
-                      title: lesson.title,
-                      content: lesson.content,
+      // 3. ATOMIC SAVE & RECONCILE
+      await prisma.$transaction(
+        async (tx) => {
+          // Save modules & lessons
+          for (let i = 0; i < aiData.modules.length; i++) {
+            const mod = aiData.modules[i];
+            await tx.module.create({
+              data: {
+                title: mod.title,
+                order: i + 1,
+                courseId: courseId,
+                lessons: {
+                  create: mod.lessons.map((lesson, idx) => ({
+                    order: idx + 1,
+                    contents: {
+                      create: {
+                        language: language || "ENGLISH",
+                        title: lesson.title,
+                        content: lesson.content,
+                      },
                     },
-                  },
-                })),
+                  })),
+                },
               },
-            },
+            });
+          }
+
+          // Reconcile quota (adjust from estimate to actual)
+          await reconcileQuota(tx, userId, actualTokens - RESERVED_TOKENS);
+
+          // Mark course as published
+          await tx.course.update({
+            where: { id: courseId },
+            data: { status: "PUBLISHED" },
           });
-        }
+        },
+        { timeout: 30000 },
+      );
 
-        // --- RECONCILE QUOTA ---
-// Net adjustment: actualTokens - 2000 (reserved)
-// If actualTokens > 2000, this increments; if less, it decrements
-await tx.userQuota.update({
-  where: { userId },
-  data: {
-    used: {
-      increment: actualTokens - 2000,
-    },
-  },
-});
-
-
-        // --- MARK COMPLETE ---
-        await tx.course.update({
-          where: { id: courseId },
-          data: { status: "PUBLISHED" },
-        });
-      }, {
-    timeout: 30000, 
-  });
-
-      console.log(`✅ Success! Tokens used: ${actualTokens}`);
+      logger.info({ courseId, actualTokens }, "Course generation completed");
     } catch (error) {
-      console.error(`❌ Worker Error:`, error.message);
+      logger.error({ courseId, error: error.message }, "Worker error");
 
-      // REFUND ON FAILURE: Only if the error happened BEFORE the quota was reconciled
+      // Refund reserved tokens on failure
       try {
-        await prisma.userQuota.update({
-          where: { userId },
-          data: { used: { decrement: 2000 } },
-        });
+        await refundQuota(userId, RESERVED_TOKENS);
       } catch (refundError) {
-        console.error("Critical: Could not refund quota", refundError.message);
+        logger.error(
+          { userId, error: refundError.message },
+          "Critical: could not refund quota",
+        );
       }
 
       await prisma.course.update({

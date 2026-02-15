@@ -1,6 +1,7 @@
 const prisma = require("../../config/prisma");
 const passwordUtils = require("../../utils/password");
 const tokenService = require("./token.service");
+const AppError = require("../../utils/AppError");
 
 const registerUser = async (userData) => {
   const { name, email, password } = userData;
@@ -11,7 +12,7 @@ const registerUser = async (userData) => {
   });
 
   if (existingUser) {
-    throw new Error("User already exists with this email");
+    throw AppError.conflict("User already exists with this email", "USER_EXISTS");
   }
 
   // 2. Hash the password
@@ -27,10 +28,9 @@ const registerUser = async (userData) => {
   });
 
   // 4. Issue Tokens
-  // We pass the newly created 'user' to the token service
   const tokens = await tokenService.generateAuthTokens(user);
 
-  // We don't want to send the password hash back to the frontend/controller
+  // Don't send the password hash back
   delete user.password;
 
   return {
@@ -43,27 +43,22 @@ const registerUser = async (userData) => {
 const loginUser = async (credentials) => {
   const { email, password } = credentials;
 
-  //  Find user in DB
   const user = await prisma.user.findUnique({
     where: { email },
   });
 
   if (!user) {
-    throw new Error("Invalid Credentials");
+    throw AppError.unauthorized("Invalid credentials", "INVALID_CREDENTIALS");
   }
 
-  // Password Check
-  // Compare plain text input with the hashed string from the DB
   const isMatch = await passwordUtils.comparePassword(password, user.password);
 
   if (!isMatch) {
-    throw new Error("Invalid Credentials");
+    throw AppError.unauthorized("Invalid credentials", "INVALID_CREDENTIALS");
   }
 
-  // Generate Tokens
   const tokens = await tokenService.generateAuthTokens(user);
 
-  // Cleanup and Return
   delete user.password;
 
   return {
@@ -74,30 +69,28 @@ const loginUser = async (credentials) => {
 };
 
 const refreshSession = async (refreshTokenString) => {
-  // Verify the token (This checks DB existence, expiry, and revocation)
   const session = await tokenService.verifyRefreshToken(refreshTokenString);
 
   if (!session) {
-    throw new Error("Invalid or expired session. Please login again.");
+    throw AppError.unauthorized(
+      "Invalid or expired session. Please login again.",
+      "SESSION_INVALID",
+    );
   }
 
-  // 2. TOKEN ROTATION
-  // We delete the old session so it can never be used again.
-  // This prevents 'Replay Attacks' where a hacker uses an old token.
+  // Token rotation: delete old session
   await prisma.refreshToken.delete({
     where: { id: session.id },
   });
 
-  // 3. Issue brand new tokens for the user
+  // Issue brand new tokens
   const newTokens = await tokenService.generateAuthTokens(session.user);
 
   return newTokens;
 };
 
 const logoutUser = async (refreshTokenString) => {
-  // Use deleteMany instead of delete.
-  // Why? deleteMany doesn't throw an error if the record is missing.
-  // It just returns { count: 0 }. This makes our code "Idempotent."
+  // deleteMany is idempotent — no error if not found
   await prisma.refreshToken.deleteMany({
     where: {
       hashedToken: refreshTokenString,

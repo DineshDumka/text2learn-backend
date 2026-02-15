@@ -1,5 +1,6 @@
 const jwt = require("../utils/jwt");
 const prisma = require("../config/prisma");
+const AppError = require("../utils/AppError");
 
 const protect = async (req, res, next) => {
   try {
@@ -14,42 +15,50 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) {
-      return res.status(401).json({ message: "Not authorized, no token" });
+      throw AppError.unauthorized("Not authorized, no token", "NO_TOKEN");
     }
 
     // Verify token
     const decoded = jwt.verifyToken(token, process.env.ACCESS_TOKEN_SECRET);
 
     if (!decoded) {
-      return res.status(401).json({ message: "Not authorized, token failed" });
+      throw AppError.unauthorized("Not authorized, token failed", "INVALID_TOKEN");
     }
 
-    //  Check if user still exists in DB
+    // Check if user still exists in DB
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
       select: { id: true, name: true, email: true, role: true },
     });
 
     if (!user) {
-      return res
-        .status(401)
-        .json({ message: "User belonging to this token no longer exists" });
+      throw AppError.unauthorized(
+        "User belonging to this token no longer exists",
+        "USER_NOT_FOUND",
+      );
     }
 
-    //  Attach user to request object
+    // Attach user to request object
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ message: "Not authorized" });
+    // If it's already an AppError, pass it through to error middleware
+    if (error.isOperational) {
+      return next(error);
+    }
+    next(AppError.unauthorized("Not authorized", "AUTH_FAILED"));
   }
 };
 
 const restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: "You do not have permission to perform this action",
-      });
+      return next(
+        AppError.forbidden(
+          "You do not have permission to perform this action",
+          "ROLE_FORBIDDEN",
+        ),
+      );
     }
     next();
   };

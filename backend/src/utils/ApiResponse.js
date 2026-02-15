@@ -1,14 +1,19 @@
+/**
+ * Standardized API response helper.
+ *
+ * Success: { success: true, data: ..., error: null }
+ * Error:   { success: false, data: null, error: { code, message } }
+ */
 class ApiResponse {
-  static success(data, message = "Success") {
+  static success(data, statusCode = 200) {
     return {
       success: true,
       data,
-      message,
       error: null,
     };
   }
 
-  static error(message, code = "INTERNAL_ERROR", statusCode = 500) {
+  static error(message, code = "INTERNAL_ERROR") {
     return {
       success: false,
       data: null,

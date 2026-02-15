@@ -1,10 +1,12 @@
 const prisma = require("../../config/prisma");
+const AppError = require("../../utils/AppError");
+
 const getLesson = async (lessonId, requestedLang = "ENGLISH") => {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
     include: {
       contents: {
-        where: { language: requestedLang }, //
+        where: { language: requestedLang },
       },
       quizzes: {
         include: { questions: true },
@@ -12,9 +14,11 @@ const getLesson = async (lessonId, requestedLang = "ENGLISH") => {
     },
   });
 
-  if (!lesson) throw new Error("Lesson not found");
+  if (!lesson) {
+    throw AppError.notFound("Lesson not found");
+  }
 
-  // If translation doesn't exist, fallback to the first available content
+  // If translation doesn't exist, fallback to ENGLISH
   const content =
     lesson.contents[0] ||
     (await prisma.lessonContent.findFirst({
@@ -28,4 +32,5 @@ const getLesson = async (lessonId, requestedLang = "ENGLISH") => {
     language: content?.language,
   };
 };
+
 module.exports = { getLesson };

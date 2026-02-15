@@ -1,16 +1,15 @@
 const prisma = require("../../config/prisma");
 const courseQueue = require("../../queue/course.queue");
-const { checkAndReserveQuota } = require("./quota.service"); // 👈 IMPORT THIS
+const { checkAndReserveQuota } = require("./quota.service");
+const AppError = require("../../utils/AppError");
 
 const createCourse = async (courseData, userId) => {
   const { title, description, difficulty, language, rawText } = courseData;
 
-  // 1️. CHANGE: ATOMIC QUOTA CHECK
-  // We check if the user has tokens BEFORE creating the DB record or enqueuing.
-  // This prevents users from spamming the system for free.
-  await checkAndReserveQuota(userId, 2000); // Estimating 2k tokens for a course
+  // Atomic quota check before creating DB record or enqueuing
+  await checkAndReserveQuota(userId, 2000);
 
-  // 2. Save the 'Shell' of the course in DB
+  // Save the course shell in DB
   const course = await prisma.course.create({
     data: {
       title,
@@ -23,7 +22,7 @@ const createCourse = async (courseData, userId) => {
     },
   });
 
-  // 3. Put the job in the queue
+  // Queue the AI generation job
   await courseQueue.add(
     "COURSE_GENERATION",
     {
@@ -43,9 +42,14 @@ const createCourse = async (courseData, userId) => {
   return course;
 };
 
-const searchCourses = async ({ query, difficulty, language, limit = 10, cursor = null }) => {
-
-  const take = Number(limit); // Ensure it's a number
+const searchCourses = async ({
+  query,
+  difficulty,
+  language,
+  limit = 10,
+  cursor = null,
+}) => {
+  const take = Number(limit);
 
   const where = {
     status: "PUBLISHED",
@@ -59,20 +63,17 @@ const searchCourses = async ({ query, difficulty, language, limit = 10, cursor =
     }),
   };
 
-  // 2️. CHANGE: REFINED CURSOR LOGIC
-  // We fetch 'take + 1' to know if there's a next page without a second COUNT query.
   const findOptions = {
     where,
     take: take + 1,
     orderBy: [{ createdAt: "desc" }, { id: "asc" }],
     include: {
       creator: { select: { name: true } },
-      _count: { select: { modules: true } }, // Show module count on search results
+      _count: { select: { modules: true } },
     },
   };
 
   if (cursor) {
-    // If your cursor is "timestamp:uuid", we only need the uuid for Prisma's cursor field
     const [_, id] = cursor.includes(":") ? cursor.split(":") : [null, cursor];
     findOptions.cursor = { id };
     findOptions.skip = 1;
@@ -80,10 +81,9 @@ const searchCourses = async ({ query, difficulty, language, limit = 10, cursor =
 
   const courses = await prisma.course.findMany(findOptions);
 
-  // 3️. CHANGE: DYNAMIC NEXT CURSOR
   let nextCursor = null;
   if (courses.length > take) {
-    const nextItem = courses.pop(); // Remove the extra (+1) item
+    const nextItem = courses.pop();
     nextCursor = `${nextItem.createdAt.toISOString()}:${nextItem.id}`;
   }
 
@@ -96,13 +96,17 @@ const getCourseStatusOnly = async (courseId, userId) => {
     select: {
       status: true,
       creatorId: true,
-    }, // Only fetch exactly what we need
+    },
   });
 
-  if (!course) throw new Error("NOT_FOUND");
+  if (!course) {
+    throw AppError.notFound("Course not found");
+  }
 
-  // Ownership Check
-  if (course.creatorId !== userId) throw new Error("UNAUTHORIZED");
+  // Ownership check
+  if (course.creatorId !== userId) {
+    throw AppError.forbidden("You are not authorized to view this course status");
+  }
 
   return { status: course.status };
 };
@@ -110,9 +114,13 @@ const getCourseStatusOnly = async (courseId, userId) => {
 const deleteCourse = async (courseId, userId) => {
   const course = await prisma.course.findUnique({ where: { id: courseId } });
 
-  if (!course) throw new Error("Course not found");
-  if (course.creatorId !== userId)
-    throw new Error("Unauthorized to delete this course");
+  if (!course) {
+    throw AppError.notFound("Course not found");
+  }
+
+  if (course.creatorId !== userId) {
+    throw AppError.forbidden("You are not authorized to delete this course");
+  }
 
   return await prisma.course.delete({ where: { id: courseId } });
 };

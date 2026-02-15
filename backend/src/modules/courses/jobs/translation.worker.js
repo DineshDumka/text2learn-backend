@@ -2,6 +2,7 @@ const { Worker } = require("bullmq");
 const redisConnection = require("../../../config/redis");
 const prisma = require("../../../config/prisma");
 const { translateLesson } = require("../ai.service");
+const logger = require("../../../config/logger");
 
 const translationWorker = new Worker(
   "content-translation",
@@ -18,14 +19,14 @@ const translationWorker = new Worker(
 
       if (!original) throw new Error("Original content not found");
 
-      // 2. AI Translation
+      // 2. AI Translation (includes Zod validation)
       const translated = await translateLesson(
         original.title,
         original.content,
         targetLang,
       );
 
-      // 3. Save as new LessonContent row
+      // 3. Save as new LessonContent row (idempotent upsert)
       await prisma.lessonContent.upsert({
         where: {
           lessonId_language: { lessonId, language: targetLang },
@@ -42,9 +43,12 @@ const translationWorker = new Worker(
         },
       });
 
-      console.log(`✅ Translated lesson ${lessonId} to ${targetLang}`);
+      logger.info({ lessonId, targetLang }, "Translation completed");
     } catch (error) {
-      console.error(`❌ Translation Failed for ${lessonId}:`, error.message);
+      logger.error(
+        { lessonId, targetLang, error: error.message },
+        "Translation failed",
+      );
       throw error;
     }
   },
