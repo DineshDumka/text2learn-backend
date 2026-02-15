@@ -13,7 +13,7 @@ const exportRouter = require("./routes/export.routes.js");
 const progressRouter = require("./routes/progress.routes.js");
 const lessonRouter = require("./routes/lesson.routes.js");
 const userRouter = require("./routes/user.routes.js");
-const healthRouter = require("./routes/health.routes.js"); // New Health Routes
+const { healthRouter, metricsRouter } = require("./routes/health.routes.js");
 
 const { globalLimiter } = require("./middlewares/rateLimiter");
 const errorHandler = require("./middlewares/error.middleware");
@@ -54,7 +54,7 @@ app.use("/api/v1/", globalLimiter);
 
 // --- Routes ---
 app.use("/health", healthRouter); // Mount at root /health
-app.use("/metrics", healthRouter); // Mount at root /metrics
+app.use("/metrics", metricsRouter); // Mount at root /metrics
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/courses", courseRouter);

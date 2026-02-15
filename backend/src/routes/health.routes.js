@@ -1,10 +1,12 @@
 const express = require("express");
-const router = express.Router();
 const prisma = require("../config/prisma");
 const redis = require("../config/redis");
 const ApiResponse = require("../utils/ApiResponse");
 
-router.get("/health", async (req, res) => {
+const healthRouter = express.Router();
+const metricsRouter = express.Router();
+
+healthRouter.get("/", async (req, res) => {
   const status = {
     uptime: process.uptime(),
     timestamp: new Date(),
@@ -36,15 +38,14 @@ router.get("/health", async (req, res) => {
     .json(ApiResponse.success(status, isHealthy ? "Healthy" : "Unhealthy"));
 });
 
-router.get("/metrics", async (req, res) => {
-  // Simple metrics - can be expanded for Prometheus later
+metricsRouter.get("/", async (req, res) => {
   const metrics = {
     memoryUsage: process.memoryUsage(),
     cpuUsage: process.cpuUsage(),
-    activeConnections: "TODO - via server.getConnections()", 
+    uptime: process.uptime(),
   };
-  
+
   res.status(200).json(ApiResponse.success(metrics));
 });
 
-module.exports = router;
+module.exports = { healthRouter, metricsRouter };
