@@ -1,11 +1,12 @@
 const courseService = require("./courses.service");
+const pdfService = require("./pdf.service");
 const prisma = require("../../config/prisma");
 const asyncHandler = require("../../utils/asyncHandler");
 const AppError = require("../../utils/AppError");
 const ApiResponse = require("../../utils/ApiResponse");
 
 /**
- * POST /courses — Create a new AI-generated course
+ * POST /courses — Create a new AI-generated course from text
  */
 const createCourse = asyncHandler(async (req, res) => {
   if (!req.body || Object.keys(req.body).length === 0) {
@@ -23,6 +24,38 @@ const createCourse = asyncHandler(async (req, res) => {
 });
 
 /**
+ * POST /courses/from-pdf — Create a course from an uploaded PDF file
+ */
+const createCourseFromPdf = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw AppError.badRequest("No PDF file uploaded", "NO_FILE");
+  }
+
+  // 1. Extract text from PDF (validation included)
+  const extractedText = await pdfService.extractTextFromPdf(req.file.buffer);
+
+  // 2. Build course data from extracted text + body params
+  const courseData = {
+    title: req.body.title || "Course from PDF",
+    description: req.body.description || null,
+    difficulty: req.body.difficulty || "BEGINNER",
+    language: req.body.language || "ENGLISH",
+    rawText: extractedText,
+  };
+
+  // 3. Feed into existing pipeline (quota → DB shell → BullMQ)
+  const course = await courseService.createCourse(courseData, req.user.id);
+
+  res.status(201).json(
+    ApiResponse.success({
+      courseId: course.id,
+      status: course.status,
+      extractedTextLength: extractedText.length,
+    }),
+  );
+});
+
+/**
  * GET /courses/:id — Get full course with modules & lessons
  */
 const getCourseById = asyncHandler(async (req, res) => {
@@ -33,7 +66,11 @@ const getCourseById = asyncHandler(async (req, res) => {
     include: {
       modules: {
         include: {
-          lessons: true,
+          lessons: {
+            include: {
+              contents: true,
+            },
+          },
         },
         orderBy: { order: "asc" },
       },
@@ -123,9 +160,11 @@ const deleteCourse = asyncHandler(async (req, res) => {
 
 module.exports = {
   createCourse,
+  createCourseFromPdf,
   getCourseById,
   getQuizByLesson,
   searchAndListCourses,
   getCourseStatus,
   deleteCourse,
 };
+

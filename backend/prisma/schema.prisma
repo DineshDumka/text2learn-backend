@@ -119,28 +119,30 @@ model Progress {
 
 
 model Lesson {
-  id        String   @id @default(uuid())
-  moduleId  String
-  module    Module   @relation(fields: [moduleId], references: [id])
-  order     Int
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  moduleId   String
+  module     Module   @relation(fields: [moduleId], references: [id])
+  order      Int
+  youtubeUrl String?
+  createdAt  DateTime @default(now())
 
   // Relationships
-  contents  LessonContent[] //
+  contents  LessonContent[]
   progress  Progress[]
   quizzes   Quiz[]
 }
 
 model LessonContent {
-  id        String   @id @default(uuid())
-  lessonId  String
-  lesson    Lesson   @relation(fields: [lessonId], references: [id])
+  id          String   @id @default(uuid())
+  lessonId    String
+  lesson      Lesson   @relation(fields: [lessonId], references: [id])
 
-  language  Language // enum: ENGLISH, HINGLISH, HINDI, etc.
-  title     String
-  content   String   @db.Text // Long educational text
+  language    Language
+  title       String
+  content     String   @db.Text
+  codeExample String?  @db.Text
 
-  @@unique([lessonId, language]) //
+  @@unique([lessonId, language])
 }
 model UserQuota {
   userId        String   @unique

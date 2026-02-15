@@ -28,6 +28,7 @@ model User {
   email         String         @unique
   password      String
   role          Role           @default(USER)
+  quota         UserQuota?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   courses       Course[]
@@ -53,6 +54,8 @@ model Course {
 
   @@index([creatorId])
   @@index([status])
+  @@index([difficulty])
+  @@index([language])
   @@map("courses")
 }
 
@@ -113,14 +116,15 @@ model Progress {
 }
 
 model Lesson {
-  id        String   @id @default(uuid())
-  moduleId  String
-  module    Module   @relation(fields: [moduleId], references: [id])
-  order     Int
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  moduleId   String
+  module     Module   @relation(fields: [moduleId], references: [id])
+  order      Int
+  youtubeUrl String?
+  createdAt  DateTime @default(now())
 
   // Relationships
-  contents LessonContent[] //
+  contents LessonContent[]
   progress Progress[]
   quizzes  Quiz[]
 }
@@ -130,11 +134,27 @@ model LessonContent {
   lessonId String
   lesson   Lesson @relation(fields: [lessonId], references: [id])
 
-  language Language // enum: ENGLISH, HINGLISH, HINDI, etc.
-  title    String
-  content  String   @db.Text // Long educational text
+  language    Language
+  title       String
+  content     String   @db.Text
+  codeExample String?  @db.Text
 
-  @@unique([lessonId, language]) //
+  @@unique([lessonId, language])
+}
+
+model UserQuota {
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  plan         Plan     @default(FREE)
+  monthlyLimit Int      @default(50000) // 50k tokens
+  used         Int      @default(0)
+  resetAt      DateTime @default(now())
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
 }
 
 enum Language {

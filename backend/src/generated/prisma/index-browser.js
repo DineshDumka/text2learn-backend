@@ -195,6 +195,7 @@ exports.Prisma.LessonScalarFieldEnum = {
   id: 'id',
   moduleId: 'moduleId',
   order: 'order',
+  youtubeUrl: 'youtubeUrl',
   createdAt: 'createdAt'
 };
 
@@ -203,7 +204,8 @@ exports.Prisma.LessonContentScalarFieldEnum = {
   lessonId: 'lessonId',
   language: 'language',
   title: 'title',
-  content: 'content'
+  content: 'content',
+  codeExample: 'codeExample'
 };
 
 exports.Prisma.UserQuotaScalarFieldEnum = {

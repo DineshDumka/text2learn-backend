@@ -9818,6 +9818,7 @@ export namespace Prisma {
     id: string | null
     moduleId: string | null
     order: number | null
+    youtubeUrl: string | null
     createdAt: Date | null
   }
 
@@ -9825,6 +9826,7 @@ export namespace Prisma {
     id: string | null
     moduleId: string | null
     order: number | null
+    youtubeUrl: string | null
     createdAt: Date | null
   }
 
@@ -9832,6 +9834,7 @@ export namespace Prisma {
     id: number
     moduleId: number
     order: number
+    youtubeUrl: number
     createdAt: number
     _all: number
   }
@@ -9849,6 +9852,7 @@ export namespace Prisma {
     id?: true
     moduleId?: true
     order?: true
+    youtubeUrl?: true
     createdAt?: true
   }
 
@@ -9856,6 +9860,7 @@ export namespace Prisma {
     id?: true
     moduleId?: true
     order?: true
+    youtubeUrl?: true
     createdAt?: true
   }
 
@@ -9863,6 +9868,7 @@ export namespace Prisma {
     id?: true
     moduleId?: true
     order?: true
+    youtubeUrl?: true
     createdAt?: true
     _all?: true
   }
@@ -9957,6 +9963,7 @@ export namespace Prisma {
     id: string
     moduleId: string
     order: number
+    youtubeUrl: string | null
     createdAt: Date
     _count: LessonCountAggregateOutputType | null
     _avg: LessonAvgAggregateOutputType | null
@@ -9983,6 +9990,7 @@ export namespace Prisma {
     id?: boolean
     moduleId?: boolean
     order?: boolean
+    youtubeUrl?: boolean
     createdAt?: boolean
     module?: boolean | ModuleDefaultArgs<ExtArgs>
     contents?: boolean | Lesson$contentsArgs<ExtArgs>
@@ -9995,6 +10003,7 @@ export namespace Prisma {
     id?: boolean
     moduleId?: boolean
     order?: boolean
+    youtubeUrl?: boolean
     createdAt?: boolean
     module?: boolean | ModuleDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["lesson"]>
@@ -10003,6 +10012,7 @@ export namespace Prisma {
     id?: boolean
     moduleId?: boolean
     order?: boolean
+    youtubeUrl?: boolean
     createdAt?: boolean
     module?: boolean | ModuleDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["lesson"]>
@@ -10011,10 +10021,11 @@ export namespace Prisma {
     id?: boolean
     moduleId?: boolean
     order?: boolean
+    youtubeUrl?: boolean
     createdAt?: boolean
   }
 
-  export type LessonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "moduleId" | "order" | "createdAt", ExtArgs["result"]["lesson"]>
+  export type LessonOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "moduleId" | "order" | "youtubeUrl" | "createdAt", ExtArgs["result"]["lesson"]>
   export type LessonInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     module?: boolean | ModuleDefaultArgs<ExtArgs>
     contents?: boolean | Lesson$contentsArgs<ExtArgs>
@@ -10041,6 +10052,7 @@ export namespace Prisma {
       id: string
       moduleId: string
       order: number
+      youtubeUrl: string | null
       createdAt: Date
     }, ExtArgs["result"]["lesson"]>
     composites: {}
@@ -10472,6 +10484,7 @@ export namespace Prisma {
     readonly id: FieldRef<"Lesson", 'String'>
     readonly moduleId: FieldRef<"Lesson", 'String'>
     readonly order: FieldRef<"Lesson", 'Int'>
+    readonly youtubeUrl: FieldRef<"Lesson", 'String'>
     readonly createdAt: FieldRef<"Lesson", 'DateTime'>
   }
     
@@ -10975,6 +10988,7 @@ export namespace Prisma {
     language: $Enums.Language | null
     title: string | null
     content: string | null
+    codeExample: string | null
   }
 
   export type LessonContentMaxAggregateOutputType = {
@@ -10983,6 +10997,7 @@ export namespace Prisma {
     language: $Enums.Language | null
     title: string | null
     content: string | null
+    codeExample: string | null
   }
 
   export type LessonContentCountAggregateOutputType = {
@@ -10991,6 +11006,7 @@ export namespace Prisma {
     language: number
     title: number
     content: number
+    codeExample: number
     _all: number
   }
 
@@ -11001,6 +11017,7 @@ export namespace Prisma {
     language?: true
     title?: true
     content?: true
+    codeExample?: true
   }
 
   export type LessonContentMaxAggregateInputType = {
@@ -11009,6 +11026,7 @@ export namespace Prisma {
     language?: true
     title?: true
     content?: true
+    codeExample?: true
   }
 
   export type LessonContentCountAggregateInputType = {
@@ -11017,6 +11035,7 @@ export namespace Prisma {
     language?: true
     title?: true
     content?: true
+    codeExample?: true
     _all?: true
   }
 
@@ -11098,6 +11117,7 @@ export namespace Prisma {
     language: $Enums.Language
     title: string
     content: string
+    codeExample: string | null
     _count: LessonContentCountAggregateOutputType | null
     _min: LessonContentMinAggregateOutputType | null
     _max: LessonContentMaxAggregateOutputType | null
@@ -11123,6 +11143,7 @@ export namespace Prisma {
     language?: boolean
     title?: boolean
     content?: boolean
+    codeExample?: boolean
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["lessonContent"]>
 
@@ -11132,6 +11153,7 @@ export namespace Prisma {
     language?: boolean
     title?: boolean
     content?: boolean
+    codeExample?: boolean
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["lessonContent"]>
 
@@ -11141,6 +11163,7 @@ export namespace Prisma {
     language?: boolean
     title?: boolean
     content?: boolean
+    codeExample?: boolean
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["lessonContent"]>
 
@@ -11150,9 +11173,10 @@ export namespace Prisma {
     language?: boolean
     title?: boolean
     content?: boolean
+    codeExample?: boolean
   }
 
-  export type LessonContentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "lessonId" | "language" | "title" | "content", ExtArgs["result"]["lessonContent"]>
+  export type LessonContentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "lessonId" | "language" | "title" | "content" | "codeExample", ExtArgs["result"]["lessonContent"]>
   export type LessonContentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     lesson?: boolean | LessonDefaultArgs<ExtArgs>
   }
@@ -11174,6 +11198,7 @@ export namespace Prisma {
       language: $Enums.Language
       title: string
       content: string
+      codeExample: string | null
     }, ExtArgs["result"]["lessonContent"]>
     composites: {}
   }
@@ -11603,6 +11628,7 @@ export namespace Prisma {
     readonly language: FieldRef<"LessonContent", 'Language'>
     readonly title: FieldRef<"LessonContent", 'String'>
     readonly content: FieldRef<"LessonContent", 'String'>
+    readonly codeExample: FieldRef<"LessonContent", 'String'>
   }
     
 
@@ -13222,6 +13248,7 @@ export namespace Prisma {
     id: 'id',
     moduleId: 'moduleId',
     order: 'order',
+    youtubeUrl: 'youtubeUrl',
     createdAt: 'createdAt'
   };
 
@@ -13233,7 +13260,8 @@ export namespace Prisma {
     lessonId: 'lessonId',
     language: 'language',
     title: 'title',
-    content: 'content'
+    content: 'content',
+    codeExample: 'codeExample'
   };
 
   export type LessonContentScalarFieldEnum = (typeof LessonContentScalarFieldEnum)[keyof typeof LessonContentScalarFieldEnum]
@@ -13947,6 +13975,7 @@ export namespace Prisma {
     id?: StringFilter<"Lesson"> | string
     moduleId?: StringFilter<"Lesson"> | string
     order?: IntFilter<"Lesson"> | number
+    youtubeUrl?: StringNullableFilter<"Lesson"> | string | null
     createdAt?: DateTimeFilter<"Lesson"> | Date | string
     module?: XOR<ModuleScalarRelationFilter, ModuleWhereInput>
     contents?: LessonContentListRelationFilter
@@ -13958,6 +13987,7 @@ export namespace Prisma {
     id?: SortOrder
     moduleId?: SortOrder
     order?: SortOrder
+    youtubeUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     module?: ModuleOrderByWithRelationInput
     contents?: LessonContentOrderByRelationAggregateInput
@@ -13972,6 +14002,7 @@ export namespace Prisma {
     NOT?: LessonWhereInput | LessonWhereInput[]
     moduleId?: StringFilter<"Lesson"> | string
     order?: IntFilter<"Lesson"> | number
+    youtubeUrl?: StringNullableFilter<"Lesson"> | string | null
     createdAt?: DateTimeFilter<"Lesson"> | Date | string
     module?: XOR<ModuleScalarRelationFilter, ModuleWhereInput>
     contents?: LessonContentListRelationFilter
@@ -13983,6 +14014,7 @@ export namespace Prisma {
     id?: SortOrder
     moduleId?: SortOrder
     order?: SortOrder
+    youtubeUrl?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: LessonCountOrderByAggregateInput
     _avg?: LessonAvgOrderByAggregateInput
@@ -13998,6 +14030,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Lesson"> | string
     moduleId?: StringWithAggregatesFilter<"Lesson"> | string
     order?: IntWithAggregatesFilter<"Lesson"> | number
+    youtubeUrl?: StringNullableWithAggregatesFilter<"Lesson"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Lesson"> | Date | string
   }
 
@@ -14010,6 +14043,7 @@ export namespace Prisma {
     language?: EnumLanguageFilter<"LessonContent"> | $Enums.Language
     title?: StringFilter<"LessonContent"> | string
     content?: StringFilter<"LessonContent"> | string
+    codeExample?: StringNullableFilter<"LessonContent"> | string | null
     lesson?: XOR<LessonScalarRelationFilter, LessonWhereInput>
   }
 
@@ -14019,6 +14053,7 @@ export namespace Prisma {
     language?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    codeExample?: SortOrderInput | SortOrder
     lesson?: LessonOrderByWithRelationInput
   }
 
@@ -14032,6 +14067,7 @@ export namespace Prisma {
     language?: EnumLanguageFilter<"LessonContent"> | $Enums.Language
     title?: StringFilter<"LessonContent"> | string
     content?: StringFilter<"LessonContent"> | string
+    codeExample?: StringNullableFilter<"LessonContent"> | string | null
     lesson?: XOR<LessonScalarRelationFilter, LessonWhereInput>
   }, "id" | "lessonId_language">
 
@@ -14041,6 +14077,7 @@ export namespace Prisma {
     language?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    codeExample?: SortOrderInput | SortOrder
     _count?: LessonContentCountOrderByAggregateInput
     _max?: LessonContentMaxOrderByAggregateInput
     _min?: LessonContentMinOrderByAggregateInput
@@ -14055,6 +14092,7 @@ export namespace Prisma {
     language?: EnumLanguageWithAggregatesFilter<"LessonContent"> | $Enums.Language
     title?: StringWithAggregatesFilter<"LessonContent"> | string
     content?: StringWithAggregatesFilter<"LessonContent"> | string
+    codeExample?: StringNullableWithAggregatesFilter<"LessonContent"> | string | null
   }
 
   export type UserQuotaWhereInput = {
@@ -14628,6 +14666,7 @@ export namespace Prisma {
   export type LessonCreateInput = {
     id?: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     module: ModuleCreateNestedOneWithoutLessonsInput
     contents?: LessonContentCreateNestedManyWithoutLessonInput
@@ -14639,6 +14678,7 @@ export namespace Prisma {
     id?: string
     moduleId: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     contents?: LessonContentUncheckedCreateNestedManyWithoutLessonInput
     progress?: ProgressUncheckedCreateNestedManyWithoutLessonInput
@@ -14648,6 +14688,7 @@ export namespace Prisma {
   export type LessonUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     module?: ModuleUpdateOneRequiredWithoutLessonsNestedInput
     contents?: LessonContentUpdateManyWithoutLessonNestedInput
@@ -14659,6 +14700,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     moduleId?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contents?: LessonContentUncheckedUpdateManyWithoutLessonNestedInput
     progress?: ProgressUncheckedUpdateManyWithoutLessonNestedInput
@@ -14669,12 +14711,14 @@ export namespace Prisma {
     id?: string
     moduleId: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
   }
 
   export type LessonUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -14682,6 +14726,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     moduleId?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -14690,6 +14735,7 @@ export namespace Prisma {
     language: $Enums.Language
     title: string
     content: string
+    codeExample?: string | null
     lesson: LessonCreateNestedOneWithoutContentsInput
   }
 
@@ -14699,6 +14745,7 @@ export namespace Prisma {
     language: $Enums.Language
     title: string
     content: string
+    codeExample?: string | null
   }
 
   export type LessonContentUpdateInput = {
@@ -14706,6 +14753,7 @@ export namespace Prisma {
     language?: EnumLanguageFieldUpdateOperationsInput | $Enums.Language
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    codeExample?: NullableStringFieldUpdateOperationsInput | string | null
     lesson?: LessonUpdateOneRequiredWithoutContentsNestedInput
   }
 
@@ -14715,6 +14763,7 @@ export namespace Prisma {
     language?: EnumLanguageFieldUpdateOperationsInput | $Enums.Language
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    codeExample?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type LessonContentCreateManyInput = {
@@ -14723,6 +14772,7 @@ export namespace Prisma {
     language: $Enums.Language
     title: string
     content: string
+    codeExample?: string | null
   }
 
   export type LessonContentUpdateManyMutationInput = {
@@ -14730,6 +14780,7 @@ export namespace Prisma {
     language?: EnumLanguageFieldUpdateOperationsInput | $Enums.Language
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    codeExample?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type LessonContentUncheckedUpdateManyInput = {
@@ -14738,6 +14789,7 @@ export namespace Prisma {
     language?: EnumLanguageFieldUpdateOperationsInput | $Enums.Language
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    codeExample?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type UserQuotaCreateInput = {
@@ -15435,6 +15487,7 @@ export namespace Prisma {
     id?: SortOrder
     moduleId?: SortOrder
     order?: SortOrder
+    youtubeUrl?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -15446,6 +15499,7 @@ export namespace Prisma {
     id?: SortOrder
     moduleId?: SortOrder
     order?: SortOrder
+    youtubeUrl?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -15453,6 +15507,7 @@ export namespace Prisma {
     id?: SortOrder
     moduleId?: SortOrder
     order?: SortOrder
+    youtubeUrl?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -15471,6 +15526,7 @@ export namespace Prisma {
     language?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    codeExample?: SortOrder
   }
 
   export type LessonContentMaxOrderByAggregateInput = {
@@ -15479,6 +15535,7 @@ export namespace Prisma {
     language?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    codeExample?: SortOrder
   }
 
   export type LessonContentMinOrderByAggregateInput = {
@@ -15487,6 +15544,7 @@ export namespace Prisma {
     language?: SortOrder
     title?: SortOrder
     content?: SortOrder
+    codeExample?: SortOrder
   }
 
   export type EnumPlanFilter<$PrismaModel = never> = {
@@ -16868,6 +16926,7 @@ export namespace Prisma {
   export type LessonCreateWithoutModuleInput = {
     id?: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     contents?: LessonContentCreateNestedManyWithoutLessonInput
     progress?: ProgressCreateNestedManyWithoutLessonInput
@@ -16877,6 +16936,7 @@ export namespace Prisma {
   export type LessonUncheckedCreateWithoutModuleInput = {
     id?: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     contents?: LessonContentUncheckedCreateNestedManyWithoutLessonInput
     progress?: ProgressUncheckedCreateNestedManyWithoutLessonInput
@@ -16947,6 +17007,7 @@ export namespace Prisma {
     id?: StringFilter<"Lesson"> | string
     moduleId?: StringFilter<"Lesson"> | string
     order?: IntFilter<"Lesson"> | number
+    youtubeUrl?: StringNullableFilter<"Lesson"> | string | null
     createdAt?: DateTimeFilter<"Lesson"> | Date | string
   }
 
@@ -17018,6 +17079,7 @@ export namespace Prisma {
   export type LessonCreateWithoutQuizzesInput = {
     id?: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     module: ModuleCreateNestedOneWithoutLessonsInput
     contents?: LessonContentCreateNestedManyWithoutLessonInput
@@ -17028,6 +17090,7 @@ export namespace Prisma {
     id?: string
     moduleId: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     contents?: LessonContentUncheckedCreateNestedManyWithoutLessonInput
     progress?: ProgressUncheckedCreateNestedManyWithoutLessonInput
@@ -17081,6 +17144,7 @@ export namespace Prisma {
   export type LessonUpdateWithoutQuizzesInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     module?: ModuleUpdateOneRequiredWithoutLessonsNestedInput
     contents?: LessonContentUpdateManyWithoutLessonNestedInput
@@ -17091,6 +17155,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     moduleId?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contents?: LessonContentUncheckedUpdateManyWithoutLessonNestedInput
     progress?: ProgressUncheckedUpdateManyWithoutLessonNestedInput
@@ -17147,6 +17212,7 @@ export namespace Prisma {
   export type LessonCreateWithoutProgressInput = {
     id?: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     module: ModuleCreateNestedOneWithoutLessonsInput
     contents?: LessonContentCreateNestedManyWithoutLessonInput
@@ -17157,6 +17223,7 @@ export namespace Prisma {
     id?: string
     moduleId: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     contents?: LessonContentUncheckedCreateNestedManyWithoutLessonInput
     quizzes?: QuizUncheckedCreateNestedManyWithoutLessonInput
@@ -17212,6 +17279,7 @@ export namespace Prisma {
   export type LessonUpdateWithoutProgressInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     module?: ModuleUpdateOneRequiredWithoutLessonsNestedInput
     contents?: LessonContentUpdateManyWithoutLessonNestedInput
@@ -17222,6 +17290,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     moduleId?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contents?: LessonContentUncheckedUpdateManyWithoutLessonNestedInput
     quizzes?: QuizUncheckedUpdateManyWithoutLessonNestedInput
@@ -17292,6 +17361,7 @@ export namespace Prisma {
     language: $Enums.Language
     title: string
     content: string
+    codeExample?: string | null
   }
 
   export type LessonContentUncheckedCreateWithoutLessonInput = {
@@ -17299,6 +17369,7 @@ export namespace Prisma {
     language: $Enums.Language
     title: string
     content: string
+    codeExample?: string | null
   }
 
   export type LessonContentCreateOrConnectWithoutLessonInput = {
@@ -17419,6 +17490,7 @@ export namespace Prisma {
     language?: EnumLanguageFilter<"LessonContent"> | $Enums.Language
     title?: StringFilter<"LessonContent"> | string
     content?: StringFilter<"LessonContent"> | string
+    codeExample?: StringNullableFilter<"LessonContent"> | string | null
   }
 
   export type ProgressUpsertWithWhereUniqueWithoutLessonInput = {
@@ -17467,6 +17539,7 @@ export namespace Prisma {
   export type LessonCreateWithoutContentsInput = {
     id?: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     module: ModuleCreateNestedOneWithoutLessonsInput
     progress?: ProgressCreateNestedManyWithoutLessonInput
@@ -17477,6 +17550,7 @@ export namespace Prisma {
     id?: string
     moduleId: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
     progress?: ProgressUncheckedCreateNestedManyWithoutLessonInput
     quizzes?: QuizUncheckedCreateNestedManyWithoutLessonInput
@@ -17501,6 +17575,7 @@ export namespace Prisma {
   export type LessonUpdateWithoutContentsInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     module?: ModuleUpdateOneRequiredWithoutLessonsNestedInput
     progress?: ProgressUpdateManyWithoutLessonNestedInput
@@ -17511,6 +17586,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     moduleId?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     progress?: ProgressUncheckedUpdateManyWithoutLessonNestedInput
     quizzes?: QuizUncheckedUpdateManyWithoutLessonNestedInput
@@ -17743,12 +17819,14 @@ export namespace Prisma {
   export type LessonCreateManyModuleInput = {
     id?: string
     order: number
+    youtubeUrl?: string | null
     createdAt?: Date | string
   }
 
   export type LessonUpdateWithoutModuleInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contents?: LessonContentUpdateManyWithoutLessonNestedInput
     progress?: ProgressUpdateManyWithoutLessonNestedInput
@@ -17758,6 +17836,7 @@ export namespace Prisma {
   export type LessonUncheckedUpdateWithoutModuleInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     contents?: LessonContentUncheckedUpdateManyWithoutLessonNestedInput
     progress?: ProgressUncheckedUpdateManyWithoutLessonNestedInput
@@ -17767,6 +17846,7 @@ export namespace Prisma {
   export type LessonUncheckedUpdateManyWithoutModuleInput = {
     id?: StringFieldUpdateOperationsInput | string
     order?: IntFieldUpdateOperationsInput | number
+    youtubeUrl?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -17811,6 +17891,7 @@ export namespace Prisma {
     language: $Enums.Language
     title: string
     content: string
+    codeExample?: string | null
   }
 
   export type ProgressCreateManyLessonInput = {
@@ -17834,6 +17915,7 @@ export namespace Prisma {
     language?: EnumLanguageFieldUpdateOperationsInput | $Enums.Language
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    codeExample?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type LessonContentUncheckedUpdateWithoutLessonInput = {
@@ -17841,6 +17923,7 @@ export namespace Prisma {
     language?: EnumLanguageFieldUpdateOperationsInput | $Enums.Language
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    codeExample?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type LessonContentUncheckedUpdateManyWithoutLessonInput = {
@@ -17848,6 +17931,7 @@ export namespace Prisma {
     language?: EnumLanguageFieldUpdateOperationsInput | $Enums.Language
     title?: StringFieldUpdateOperationsInput | string
     content?: StringFieldUpdateOperationsInput | string
+    codeExample?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProgressUpdateWithoutLessonInput = {

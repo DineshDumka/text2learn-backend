@@ -4,6 +4,7 @@ const prisma = require("../../../config/prisma");
 const { generateCourseContent } = require("../ai.service");
 const { reconcileQuota, refundQuota } = require("../quota.service");
 const { getTokenBudget } = require("../promptBuilder.service");
+const { batchResolveYouTube } = require("../media.service");
 const logger = require("../../../config/logger");
 
 const courseWorker = new Worker(
@@ -21,16 +22,29 @@ const courseWorker = new Worker(
       );
 
       // 1. Call AI Service via PromptBuilder (includes Zod validation)
-      const aiData = await generateCourseContent(rawText, language, difficulty, rawText);
+      const aiData = await generateCourseContent(
+        rawText,
+        language,
+        difficulty,
+        rawText,
+      );
 
-      // 2. Calculate actual token cost
+      // 2. Resolve YouTube keywords → URLs BEFORE transaction (network calls outside tx)
+      const youtubeUrls = await batchResolveYouTube(aiData.modules);
+
+      logger.info(
+        { courseId, resolvedVideos: youtubeUrls.size },
+        "YouTube URLs resolved",
+      );
+
+      // 3. Calculate actual token cost
       const totalText = JSON.stringify(aiData);
       const actualTokens = Math.ceil(totalText.split(/\s+/).length * 1.3);
 
-      // 3. ATOMIC SAVE & RECONCILE
+      // 4. ATOMIC SAVE & RECONCILE
       await prisma.$transaction(
         async (tx) => {
-          // Save modules & lessons
+          // Save modules & lessons with mixed content
           for (let i = 0; i < aiData.modules.length; i++) {
             const mod = aiData.modules[i];
             await tx.module.create({
@@ -41,11 +55,13 @@ const courseWorker = new Worker(
                 lessons: {
                   create: mod.lessons.map((lesson, idx) => ({
                     order: idx + 1,
+                    youtubeUrl: youtubeUrls.get(`${i}-${idx}`) || null,
                     contents: {
                       create: {
                         language: language || "ENGLISH",
                         title: lesson.title,
-                        content: lesson.content,
+                        content: lesson.theory, // theory → DB content field
+                        codeExample: lesson.codeExample || null,
                       },
                     },
                   })),

@@ -2,11 +2,15 @@ const { z } = require("zod");
 
 /**
  * Zod schemas for validating AI responses before DB insertion.
- * If Gemini returns malformed data, we fail fast with a clear error
- * instead of letting Prisma throw cryptic constraint errors.
+ *
+ * Phase 3: Updated lesson schema to support mixed content:
+ *   - theory (required) — replaces old "content" field
+ *   - codeExample (optional) — code snippet
+ *   - youtubeSuggestion (optional) — search keyword, NOT a URL
  */
 
-// A single MCQ question
+// ─── Quiz Schemas ─────────────────────────────────────────────────────────────
+
 const mcqQuestionSchema = z.object({
   type: z.literal("MCQ").optional().default("MCQ"),
   text: z.string().min(1, "Question text is required"),
@@ -17,7 +21,6 @@ const mcqQuestionSchema = z.object({
   answer: z.string().min(1, "Answer is required"),
 });
 
-// A single TRUE_FALSE question
 const trueFalseQuestionSchema = z.object({
   type: z.literal("TRUE_FALSE"),
   text: z.string().min(1, "Question text is required"),
@@ -29,34 +32,44 @@ const trueFalseQuestionSchema = z.object({
   }),
 });
 
-// A question can be either MCQ or TRUE_FALSE
 const questionSchema = z.union([trueFalseQuestionSchema, mcqQuestionSchema]);
 
-// Quiz with type and questions
 const quizSchema = z.object({
-  type: z
-    .enum(["MCQ", "TRUE_FALSE"])
-    .optional()
-    .default("MCQ"),
+  type: z.enum(["MCQ", "TRUE_FALSE"]).optional().default("MCQ"),
   questions: z
     .array(questionSchema)
     .min(1, "Quiz must have at least 1 question"),
 });
 
-// A single lesson
+// ─── Lesson Schema (Mixed Content) ───────────────────────────────────────────
+
 const lessonSchema = z.object({
   title: z.string().min(1, "Lesson title is required"),
-  content: z.string().min(10, "Lesson content is too short"),
-  quiz: quizSchema,
-});
 
-// A single module
+  // Accept both "theory" and "content" for backward compatibility
+  // AI should return "theory", but older prompts may use "content"
+  theory: z.string().min(10, "Lesson theory is too short").optional(),
+  content: z.string().min(10, "Lesson content is too short").optional(),
+
+  // NEW: optional code example (string or null)
+  codeExample: z.string().nullable().optional(),
+
+  // NEW: YouTube search keyword (NOT a URL)
+  youtubeSuggestion: z.string().nullable().optional(),
+
+  quiz: quizSchema,
+}).refine(
+  (data) => data.theory || data.content,
+  { message: "Lesson must have either 'theory' or 'content' field", path: ["theory"] },
+);
+
+// ─── Module + Course Schemas ─────────────────────────────────────────────────
+
 const moduleSchema = z.object({
   title: z.string().min(1, "Module title is required"),
   lessons: z.array(lessonSchema).min(1, "Module must have at least 1 lesson"),
 });
 
-// Full course AI response
 const courseResponseSchema = z.object({
   title: z.string().min(1, "Course title is required"),
   modules: z
@@ -64,15 +77,15 @@ const courseResponseSchema = z.object({
     .min(1, "Course must have at least 1 module"),
 });
 
-// Translation response
+// ─── Translation Schema ──────────────────────────────────────────────────────
+
 const translationResponseSchema = z.object({
   title: z.string().min(1, "Translated title is required"),
   content: z.string().min(1, "Translated content is required"),
 });
 
-/**
- * Validate and return parsed data, or throw with structured details.
- */
+// ─── Validators ──────────────────────────────────────────────────────────────
+
 const validateCourseResponse = (data) => {
   const result = courseResponseSchema.safeParse(data);
   if (!result.success) {
@@ -82,7 +95,7 @@ const validateCourseResponse = (data) => {
     throw new Error(`AI_RESPONSE_INVALID: ${details}`);
   }
 
-  // Cross-check: each MCQ answer must be in its options
+  // Cross-check: each answer must be in its options
   for (const mod of result.data.modules) {
     for (const lesson of mod.lessons) {
       for (const q of lesson.quiz.questions) {
@@ -91,6 +104,16 @@ const validateCourseResponse = (data) => {
             `AI_RESPONSE_INVALID: Answer "${q.answer}" not found in options for question "${q.text}"`,
           );
         }
+      }
+    }
+  }
+
+  // Normalize: if AI used "content" instead of "theory", rename it
+  for (const mod of result.data.modules) {
+    for (const lesson of mod.lessons) {
+      if (!lesson.theory && lesson.content) {
+        lesson.theory = lesson.content;
+        delete lesson.content;
       }
     }
   }
