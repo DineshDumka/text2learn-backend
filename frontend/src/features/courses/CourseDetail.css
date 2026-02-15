@@ -1,0 +1,111 @@
+.course-detail {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ─── Header ────────────────────────────────────────── */
+
+.cd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.cd-header h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.cd-description {
+  color: var(--color-text-muted);
+  margin-bottom: 0.75rem;
+  max-width: 600px;
+}
+
+.cd-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cd-language {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.cd-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* ─── States ────────────────────────────────────────── */
+
+.cd-generating,
+.cd-failed {
+  padding: 3rem;
+}
+
+/* ─── Modules ───────────────────────────────────────── */
+
+.cd-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.module-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.lesson-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: background 0.2s;
+}
+
+.lesson-item:hover {
+  background: var(--color-surface-light);
+}
+
+.lesson-order {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-light);
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.lesson-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.lesson-arrow {
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+}
